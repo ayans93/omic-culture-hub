@@ -218,10 +218,27 @@ async function notifyByEmail(data) {
     email: data.email,
   });
 
+  // navigator.sendBeacon queues the request with the browser and returns
+  // immediately, without waiting for (or being able to read) a response —
+  // and unlike fetch, it's specifically designed to keep delivering the
+  // request even if the page navigates away right afterwards. Apps Script
+  // Web Apps can take several seconds to respond, and since the response is
+  // opaque anyway (no-cors), there's nothing gained by waiting for it — this
+  // is what removes that wait from the "Registering…" button. The payload
+  // here is a handful of short fields, well under sendBeacon's ~64KB limit.
+  if (navigator.sendBeacon) {
+    try {
+      if (navigator.sendBeacon(REGISTRATION_NOTIFY_ENDPOINT, body)) return;
+    } catch (err) {
+      // Fall through to fetch below.
+    }
+  }
+
   try {
-    // Apps Script Web Apps don't return CORS headers, so the response is
-    // opaque here. "no-cors" is what lets the browser fire the request at
-    // all; we can't read success/failure back from it.
+    // Fallback for browsers without sendBeacon (or where it failed to
+    // queue). Apps Script Web Apps don't return CORS headers, so the
+    // response is opaque here — "no-cors" is what lets the browser fire the
+    // request at all; we can't read success/failure back from it.
     await fetch(REGISTRATION_NOTIFY_ENDPOINT, {
       method: 'POST',
       mode: 'no-cors',
