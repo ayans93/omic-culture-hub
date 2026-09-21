@@ -33,7 +33,13 @@
         </span>
       </a>
 
-      <nav class="nav-pills" aria-label="Site navigation">
+      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navPills" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+      </button>
+
+      <nav class="nav-pills" id="navPills" aria-label="Site navigation">
         <a href="index.html" class="nav-pill">Home</a>
         <a href="events.html" class="nav-pill nav-pill--active">Cultural Hub</a>
         <a href="cafe.html" class="nav-pill">Cafe</a>
@@ -45,7 +51,7 @@
 
   <main class="layout">
 
-    <section class="content">
+    <section class="content content--top">
       <div class="eyebrow-badge"><span class="dot dot--orange"></span>Open Call</div>
 
       <div class="event-poster event-poster--orange">
@@ -171,6 +177,105 @@
           shortlisted for exhibition at OMIC Art and consideration for the OMIC Art Prize.
         </p>
       </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="register-card" id="artworkFormCard">
+        <h2 class="register-card__title">Submit your artwork</h2>
+        <p class="register-card__subtitle">Fill in your details and upload your artwork below.</p>
+
+        <form id="artworkForm" novalidate>
+          <div class="field">
+            <label for="artistName">Full Name</label>
+            <input type="text" id="artistName" name="artistName" placeholder="Your full name" autocomplete="name" />
+            <p class="error-message" id="artistNameError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artistPhone">Mobile Number</label>
+            <input type="tel" id="artistPhone" name="artistPhone" placeholder="+1 234 567 8900" autocomplete="tel" />
+            <p class="field-hint">Include your country code</p>
+            <p class="error-message" id="artistPhoneError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artistEmail">Email Address</label>
+            <input type="email" id="artistEmail" name="artistEmail" placeholder="you@example.com" autocomplete="email" />
+            <p class="error-message" id="artistEmailError"></p>
+          </div>
+
+          <div class="field">
+            <label for="uaeResident">Are you a UAE resident?</label>
+            <select id="uaeResident" name="uaeResident">
+              <option value="" selected disabled>Select an option</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+            <p class="error-message" id="uaeResidentError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artworkTitle">Artwork title</label>
+            <input type="text" id="artworkTitle" name="artworkTitle" placeholder="Title of your artwork" />
+            <p class="error-message" id="artworkTitleError"></p>
+          </div>
+
+          <div class="field">
+            <label for="medium">Medium / Materials</label>
+            <select id="medium" name="medium">
+              <option value="" selected disabled>Select a medium</option>
+              <option value="Painting">Painting</option>
+              <option value="Sculpture">Sculpture</option>
+              <option value="Installation">Installation</option>
+            </select>
+            <p class="error-message" id="mediumError"></p>
+          </div>
+
+          <div class="field">
+            <label for="dimensions">Dimensions</label>
+            <input type="text" id="dimensions" name="dimensions" placeholder="e.g. 60 x 90 cm" />
+            <p class="error-message" id="dimensionsError"></p>
+          </div>
+
+          <div class="field">
+            <label for="yearCompleted">Year of Completion</label>
+            <input type="text" id="yearCompleted" name="yearCompleted" placeholder="e.g. 2026" inputmode="numeric" />
+            <p class="error-message" id="yearCompletedError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artistStatement">Artist Statement</label>
+            <textarea id="artistStatement" name="artistStatement" placeholder="Tell us about this artwork" rows="4"></textarea>
+            <p class="field-counter" id="artistStatementCounter">0/150</p>
+            <p class="error-message" id="artistStatementError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artistBio">Short Artist Biography</label>
+            <textarea id="artistBio" name="artistBio" placeholder="Tell us about yourself" rows="4"></textarea>
+            <p class="error-message" id="artistBioError"></p>
+          </div>
+
+          <div class="field field--file">
+            <label for="artworkFile">Upload Your Artwork</label>
+            <input type="file" id="artworkFile" name="artworkFile" class="field-file-input" accept=".jpeg,.jpg,.png,.pdf,.svg,.avif,image/jpeg,image/png,image/svg+xml,image/avif,application/pdf" />
+            <p class="field-hint">Accepted formats: JPEG, PNG, PDF, SVG, AVIF</p>
+            <p class="error-message" id="artworkFileError"></p>
+          </div>
+
+          <div class="field">
+            <label class="field-checkbox">
+              <input type="checkbox" id="exhibitionConsent" name="exhibitionConsent" />
+              <span class="field-checkbox__label">I acknowledge and confirm that my artwork will be available for exhibition at OMIC Art from 23 October to 3 November 2026.</span>
+            </label>
+          </div>
+
+          <button type="submit" id="artworkSubmit" class="btn btn--primary btn--block" disabled>Submit</button>
+        </form>
+      </div>
+    </aside>
+
+    <section class="content content--bottom">
 
       <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Submission <span class="accent-blue">Guidelines</span></h2>
       <div class="prose">
@@ -276,102 +381,6 @@
         Submit
       </button>
     </section>
-
-    <aside class="sidebar">
-      <div class="register-card" id="artworkFormCard">
-        <h2 class="register-card__title">Submit your artwork</h2>
-        <p class="register-card__subtitle">Fill in your details and upload your artwork below.</p>
-
-        <form id="artworkForm" novalidate>
-          <div class="field">
-            <label for="artistName">Full Name</label>
-            <input type="text" id="artistName" name="artistName" placeholder="Your full name" autocomplete="name" />
-            <p class="error-message" id="artistNameError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistPhone">Mobile Number</label>
-            <input type="tel" id="artistPhone" name="artistPhone" placeholder="+1 234 567 8900" autocomplete="tel" />
-            <p class="field-hint">Include your country code</p>
-            <p class="error-message" id="artistPhoneError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistEmail">Email Address</label>
-            <input type="email" id="artistEmail" name="artistEmail" placeholder="you@example.com" autocomplete="email" />
-            <p class="error-message" id="artistEmailError"></p>
-          </div>
-
-          <div class="field">
-            <label for="uaeResident">Are you a UAE resident?</label>
-            <select id="uaeResident" name="uaeResident">
-              <option value="" selected disabled>Select an option</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-            <p class="error-message" id="uaeResidentError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artworkTitle">Artwork title</label>
-            <input type="text" id="artworkTitle" name="artworkTitle" placeholder="Title of your artwork" />
-            <p class="error-message" id="artworkTitleError"></p>
-          </div>
-
-          <div class="field">
-            <label for="medium">Medium / Materials</label>
-            <select id="medium" name="medium">
-              <option value="" selected disabled>Select a medium</option>
-              <option value="Painting">Painting</option>
-              <option value="Sculpture">Sculpture</option>
-              <option value="Installation">Installation</option>
-            </select>
-            <p class="error-message" id="mediumError"></p>
-          </div>
-
-          <div class="field">
-            <label for="dimensions">Dimensions</label>
-            <input type="text" id="dimensions" name="dimensions" placeholder="e.g. 60 x 90 cm" />
-            <p class="error-message" id="dimensionsError"></p>
-          </div>
-
-          <div class="field">
-            <label for="yearCompleted">Year of Completion</label>
-            <input type="text" id="yearCompleted" name="yearCompleted" placeholder="e.g. 2026" inputmode="numeric" />
-            <p class="error-message" id="yearCompletedError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistStatement">Artist Statement</label>
-            <textarea id="artistStatement" name="artistStatement" placeholder="Tell us about this artwork" rows="4"></textarea>
-            <p class="field-counter" id="artistStatementCounter">0/150</p>
-            <p class="error-message" id="artistStatementError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistBio">Short Artist Biography</label>
-            <textarea id="artistBio" name="artistBio" placeholder="Tell us about yourself" rows="4"></textarea>
-            <p class="error-message" id="artistBioError"></p>
-          </div>
-
-          <div class="field field--file">
-            <label for="artworkFile">Upload Your Artwork</label>
-            <input type="file" id="artworkFile" name="artworkFile" class="field-file-input" accept=".jpeg,.jpg,.png,.pdf,.svg,.avif,image/jpeg,image/png,image/svg+xml,image/avif,application/pdf" />
-            <p class="field-hint">Accepted formats: JPEG, PNG, PDF, SVG, AVIF</p>
-            <p class="error-message" id="artworkFileError"></p>
-          </div>
-
-          <div class="field">
-            <label class="field-checkbox">
-              <input type="checkbox" id="exhibitionConsent" name="exhibitionConsent" />
-              <span class="field-checkbox__label">I acknowledge and confirm that my artwork will be available for exhibition at OMIC Art from 23 October to 3 November 2026.</span>
-            </label>
-          </div>
-
-          <button type="submit" id="artworkSubmit" class="btn btn--primary btn--block" disabled>Submit</button>
-        </form>
-      </div>
-    </aside>
 
   </main>
 

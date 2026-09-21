@@ -93,6 +93,7 @@ a {
 }
 
 .site-header__inner {
+  position: relative;
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 8px 10px 8px 8px;
@@ -207,6 +208,51 @@ a {
   border-color: transparent;
 }
 
+/* Mobile nav toggle ("burger" button). Hidden by default on desktop; shown
+   only inside the max-width: 860px media query below, where .nav-pills
+   also becomes a hidden dropdown that this button opens/closes. */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.nav-toggle:hover {
+  background: rgba(23, 20, 15, 0.05);
+}
+
+.nav-toggle__bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--ink);
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-toggle.is-active .nav-toggle__bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.nav-toggle.is-active .nav-toggle__bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle.is-active .nav-toggle__bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -247,12 +293,28 @@ a {
   padding: 44px 24px 100px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: auto auto;
   gap: 40px;
   align-items: start;
 }
 
 .content {
   min-width: 0;
+  grid-column: 1;
+}
+
+/* On pages whose content is split around a docked form (art-competition,
+   video-art-talk), .content--top/.content--bottom sit in column 1 while
+   .sidebar spans both their rows in column 2 — keeping the desktop look
+   identical to a single undivided content column. On mobile the grid
+   collapses to one column and these are reset to normal source order, so
+   the form lands wherever it sits in the markup instead of always first. */
+.content--top {
+  grid-row: 1;
+}
+
+.content--bottom {
+  grid-row: 2;
 }
 
 .eyebrow-badge {
@@ -862,6 +924,8 @@ a {
   position: sticky;
   top: 88px;
   align-self: start;
+  grid-column: 2;
+  grid-row: 1 / 3;
 }
 
 .register-card {
@@ -1794,9 +1858,19 @@ a {
     grid-template-columns: 1fr;
   }
 
+  /* Undo the desktop grid placement so .content--top, the form, and
+     .content--bottom simply stack in source order — which is what puts
+     the form right before the section it was written to precede, instead
+     of always first on the page. */
+  .content--top,
+  .content--bottom,
+  .sidebar {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   .sidebar {
     position: static;
-    order: -1;
   }
 
   .meta-grid {
@@ -1807,10 +1881,35 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Burger menu: the nav is hidden by default and only appears as a
+     dropdown panel when .nav-toggle is clicked (see main.js). */
+  .nav-toggle {
+    display: inline-flex;
+  }
+
   .nav-pills {
-    order: 3;
-    width: 100%;
-    justify-content: center;
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    background: #fdfbf7;
+    border: 1px solid var(--cream-line);
+    border-radius: 22px;
+    padding: 10px;
+    box-shadow: 0 12px 28px rgba(23, 20, 15, 0.12);
+    z-index: 30;
+  }
+
+  .nav-pills.is-open {
+    display: flex;
+  }
+
+  .nav-pills .nav-pill {
+    text-align: center;
   }
 
   .site-header__inner {

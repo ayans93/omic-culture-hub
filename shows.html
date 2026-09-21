@@ -33,7 +33,13 @@
         </span>
       </a>
 
-      <nav class="nav-pills" aria-label="Site navigation">
+      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navPills" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+      </button>
+
+      <nav class="nav-pills" id="navPills" aria-label="Site navigation">
         <a href="index.html" class="nav-pill">Home</a>
         <a href="events.html" class="nav-pill">Cultural Hub</a>
         <a href="cafe.html" class="nav-pill">Cafe</a>
@@ -73,5 +79,6 @@
     </div>
   </footer>
 
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

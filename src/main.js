@@ -23,6 +23,65 @@ if (artistModal) {
   initArtistModal();
 }
 
+const navToggle = document.getElementById('navToggle');
+
+// The mobile "burger" menu button is on every page's shared header.
+if (navToggle) {
+  initMobileNav();
+}
+
+function initMobileNav() {
+  const navPills = document.getElementById('navPills');
+  if (!navPills) return;
+
+  function closeNav() {
+    navPills.classList.remove('is-open');
+    navToggle.classList.remove('is-active');
+    navToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function openNav() {
+    navPills.classList.add('is-open');
+    navToggle.classList.add('is-active');
+    navToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  navToggle.addEventListener('click', () => {
+    if (navPills.classList.contains('is-open')) {
+      closeNav();
+    } else {
+      openNav();
+    }
+  });
+
+  // Closing on link click keeps the menu from staying open after
+  // navigating to a new page, and closing on outside click / Escape
+  // makes it behave like a normal dropdown.
+  navPills.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', closeNav);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!navPills.classList.contains('is-open')) return;
+    if (navPills.contains(event.target) || navToggle.contains(event.target)) return;
+    closeNav();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && navPills.classList.contains('is-open')) {
+      closeNav();
+      navToggle.focus();
+    }
+  });
+
+  // If the viewport is resized past the mobile breakpoint while the menu
+  // is open (e.g. rotating a tablet), drop the open state so it doesn't
+  // linger as a stray dropdown once .nav-pills is shown inline again.
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 860) closeNav();
+  });
+} // end initMobileNav
+
 function goToThankYou(eventName, type) {
   const params = new URLSearchParams({ event: eventName });
   if (type) params.set('type', type);
