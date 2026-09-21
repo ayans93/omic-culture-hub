@@ -2,11 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-544K83CL');</script>
+  <!-- End Google Tag Manager -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The OMIC Art Contest | OMIC Cultural Hub</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body data-event-name="The OMIC Art Contest">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-544K83CL"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
 
   <header class="site-header">
     <div class="site-header__inner">
@@ -153,23 +164,43 @@
         </div>
       </div>
 
-      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Eligibility &amp; <span class="accent-blue">Guidelines</span></h2>
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Things to <span class="accent-blue">Note</span></h2>
       <div class="prose">
         <p>
-          Open to artists aged 18 and above who are residents of the UAE, of any
-          nationality. Eligible media: painting, sculpture, and installation. Each artist
-          may submit one original artwork that has not been previously exhibited publicly
-          or won an award in another competition. There is no size limitation. Selected
-          artworks must be available for exhibition at OMIC from 23 October to 3 November
-          2026.
+          All eligible submissions will be reviewed by the jury. Selected artworks will be
+          shortlisted for exhibition at OMIC Art and consideration for the OMIC Art Prize.
         </p>
-        <p>
-          Submissions should include the artwork title, medium/materials, dimensions, year
-          of completion, a high-resolution image, an artist statement (max. 150 words), a
-          short biography, and contact and residency information. All eligible submissions
-          are reviewed by the jury, who shortlist works for exhibition at OMIC and
-          consideration for the OMIC Art Contest.
-        </p>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Submission <span class="accent-blue">Guidelines</span></h2>
+      <div class="prose">
+        <div class="guideline-block">
+          <p class="guideline-block__title">Eligibility</p>
+          <ul class="guideline-list">
+            <li>Open to artists aged 18 and above.</li>
+            <li>Applicants must be residents of the UAE.</li>
+            <li>Artists of any nationality are welcome to apply.</li>
+          </ul>
+        </div>
+        <div class="guideline-block">
+          <p class="guideline-block__title">Eligible Media</p>
+          <ul class="guideline-list">
+            <li>Painting</li>
+            <li>Sculpture</li>
+            <li>Installation</li>
+          </ul>
+        </div>
+        <div class="guideline-block">
+          <p class="guideline-block__title">Artwork Requirements</p>
+          <ul class="guideline-list">
+            <li>Each artist may submit one artwork only.</li>
+            <li>The artwork must be an original work created by the applicant.</li>
+            <li>The artwork must not have been previously exhibited publicly.</li>
+            <li>The artwork must not have previously won an award in another art competition.</li>
+            <li>Selected artworks must be available for exhibition at OMIC Art from 23 October to 3 November 2026.</li>
+            <li>There is no size limitation.</li>
+          </ul>
+        </div>
       </div>
 
       <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Jury <span class="accent-blue">Members</span></h2>
@@ -241,51 +272,108 @@
         </li>
       </ul>
 
-      <button type="submit" form="registerForm" id="registerSubmitBottom" class="btn btn--primary btn--block btn--bottom">
-        Register your interest
+      <button type="submit" form="artworkForm" id="artworkSubmitBottom" class="btn btn--primary btn--block btn--bottom" disabled>
+        Submit
       </button>
     </section>
 
     <aside class="sidebar">
-      <div class="register-card" id="registerCard">
-        <h2 class="register-card__title">Register your interest</h2>
-        <p class="register-card__subtitle">We'll email you the full entry pack as soon as submissions open.</p>
+      <div class="register-card" id="artworkFormCard">
+        <h2 class="register-card__title">Submit your artwork</h2>
+        <p class="register-card__subtitle">Fill in your details and upload your artwork below.</p>
 
-        <form id="registerForm" novalidate>
+        <form id="artworkForm" novalidate>
           <div class="field">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your full name" autocomplete="name" />
-            <p class="error-message" id="nameError"></p>
+            <label for="artistName">Full Name</label>
+            <input type="text" id="artistName" name="artistName" placeholder="Your full name" autocomplete="name" />
+            <p class="error-message" id="artistNameError"></p>
           </div>
 
           <div class="field">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" name="phone" placeholder="+971 5X XXX XXXX" autocomplete="tel" />
-            <p class="field-hint">UAE (Dubai) numbers only, starting with +971</p>
-            <p class="error-message" id="phoneError"></p>
+            <label for="artistPhone">Mobile Number</label>
+            <input type="tel" id="artistPhone" name="artistPhone" placeholder="+1 234 567 8900" autocomplete="tel" />
+            <p class="field-hint">Include your country code</p>
+            <p class="error-message" id="artistPhoneError"></p>
           </div>
 
           <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
-            <p class="error-message" id="emailError"></p>
+            <label for="artistEmail">Email Address</label>
+            <input type="email" id="artistEmail" name="artistEmail" placeholder="you@example.com" autocomplete="email" />
+            <p class="error-message" id="artistEmailError"></p>
           </div>
 
-          <button type="submit" id="registerSubmit" class="btn btn--primary btn--block">Register</button>
+          <div class="field">
+            <label for="uaeResident">Are you a UAE resident?</label>
+            <select id="uaeResident" name="uaeResident">
+              <option value="" selected disabled>Select an option</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+            <p class="error-message" id="uaeResidentError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artworkTitle">Artwork title</label>
+            <input type="text" id="artworkTitle" name="artworkTitle" placeholder="Title of your artwork" />
+            <p class="error-message" id="artworkTitleError"></p>
+          </div>
+
+          <div class="field">
+            <label for="medium">Medium / Materials</label>
+            <select id="medium" name="medium">
+              <option value="" selected disabled>Select a medium</option>
+              <option value="Painting">Painting</option>
+              <option value="Sculpture">Sculpture</option>
+              <option value="Installation">Installation</option>
+            </select>
+            <p class="error-message" id="mediumError"></p>
+          </div>
+
+          <div class="field">
+            <label for="dimensions">Dimensions</label>
+            <input type="text" id="dimensions" name="dimensions" placeholder="e.g. 60 x 90 cm" />
+            <p class="error-message" id="dimensionsError"></p>
+          </div>
+
+          <div class="field">
+            <label for="yearCompleted">Year of Completion</label>
+            <input type="text" id="yearCompleted" name="yearCompleted" placeholder="e.g. 2026" inputmode="numeric" />
+            <p class="error-message" id="yearCompletedError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artistStatement">Artist Statement</label>
+            <textarea id="artistStatement" name="artistStatement" placeholder="Tell us about this artwork" rows="4"></textarea>
+            <p class="field-counter" id="artistStatementCounter">0/150</p>
+            <p class="error-message" id="artistStatementError"></p>
+          </div>
+
+          <div class="field">
+            <label for="artistBio">Short Artist Biography</label>
+            <textarea id="artistBio" name="artistBio" placeholder="Tell us about yourself" rows="4"></textarea>
+            <p class="error-message" id="artistBioError"></p>
+          </div>
+
+          <div class="field field--file">
+            <label for="artworkFile">Upload Your Artwork</label>
+            <input type="file" id="artworkFile" name="artworkFile" class="field-file-input" accept=".jpeg,.jpg,.png,.pdf,.svg,.avif,image/jpeg,image/png,image/svg+xml,image/avif,application/pdf" />
+            <p class="field-hint">Accepted formats: JPEG, PNG, PDF, SVG, AVIF</p>
+            <p class="error-message" id="artworkFileError"></p>
+          </div>
+
+          <div class="field">
+            <label class="field-checkbox">
+              <input type="checkbox" id="exhibitionConsent" name="exhibitionConsent" />
+              <span class="field-checkbox__label">I acknowledge and confirm that my artwork will be available for exhibition at OMIC Art from 23 October to 3 November 2026.</span>
+            </label>
+          </div>
+
+          <button type="submit" id="artworkSubmit" class="btn btn--primary btn--block" disabled>Submit</button>
         </form>
       </div>
     </aside>
 
   </main>
-
-  <div class="overlay" id="successOverlay" hidden>
-    <div class="success-card">
-      <div class="success-icon">&#10003;</div>
-      <h2>Thank you for showing interest.</h2>
-      <p>We will share the details with you shortly.</p>
-      <button type="button" class="btn btn--primary" id="successClose">Close</button>
-    </div>
-  </div>
 
   <footer class="site-footer">
     <div class="site-footer__inner">

@@ -16,6 +16,7 @@ export default defineConfig({
         videoArtTalk: resolve(__dirname, 'video-art-talk.html'),
         cafe: resolve(__dirname, 'cafe.html'),
         shows: resolve(__dirname, 'shows.html'),
+        thankYou: resolve(__dirname, 'thank-you.html'),
       }
     }
   }

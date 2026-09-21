@@ -10,7 +10,7 @@
   })(window,document,'script','dataLayer','GTM-544K83CL');</script>
   <!-- End Google Tag Manager -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shows | OMIC Cultural Hub</title>
+  <title>Thank You | OMIC Cultural Hub</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
@@ -37,27 +37,23 @@
         <a href="index.html" class="nav-pill">Home</a>
         <a href="events.html" class="nav-pill">Cultural Hub</a>
         <a href="cafe.html" class="nav-pill">Cafe</a>
-        <a href="shows.html" class="nav-pill nav-pill--active">Shows</a>
+        <a href="shows.html" class="nav-pill">Shows</a>
       </nav>
 
     </div>
   </header>
 
-  <section class="shows-masthead">
-    <div class="shows-masthead__inner">
-      <p class="shows-masthead__eyebrow">The OMIC Programme</p>
-      <h2 class="shows-masthead__title">German sound technology. Moments, closer.</h2>
-      <p class="shows-masthead__subtitle">
-        A sound sanctuary built for clarity. Honest materials, open acoustics, and room for
-        the performance to breathe.
-      </p>
-    </div>
-  </section>
-
   <main class="page-content">
-    <div class="shows-coming-soon">
-      <div class="eyebrow-badge"><span class="dot dot--lavender"></span>Shows</div>
-      <h1 class="title">Lining up shows, stay tuned!</h1>
+    <div class="thank-you">
+      <div class="success-icon">&#10003;</div>
+      <h1 class="title" id="thankYouTitle">Thank you!</h1>
+      <p class="thank-you__desc" id="thankYouDesc">
+        Your submission has been received. We'll be in touch with the details soon.
+      </p>
+      <div class="thank-you__actions">
+        <a class="btn btn--primary" href="events.html">Explore more events</a>
+        <a class="btn btn--secondary" href="index.html">Go to homepage</a>
+      </div>
     </div>
   </main>
 
@@ -73,5 +69,24 @@
     </div>
   </footer>
 
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var eventName = params.get('event');
+      var type = params.get('type');
+      var titleEl = document.getElementById('thankYouTitle');
+      var descEl = document.getElementById('thankYouDesc');
+
+      if (type === 'submission') {
+        titleEl.textContent = 'Thank you for your submission!';
+        descEl.textContent = eventName
+          ? 'Your artwork has been submitted for ' + eventName + '. Our jury will review all eligible entries and shortlisted artists will be contacted directly.'
+          : 'Your artwork has been submitted. Our jury will review all eligible entries and shortlisted artists will be contacted directly.';
+      } else if (eventName) {
+        titleEl.textContent = 'Thank you for registering!';
+        descEl.textContent = 'You’re registered for ' + eventName + '. We’ll be in touch with the details soon.';
+      }
+    })();
+  </script>
 </body>
 </html>

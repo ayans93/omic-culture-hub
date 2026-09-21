@@ -2,11 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-544K83CL');</script>
+  <!-- End Google Tag Manager -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nothing Unusual — Panel Discussion | OMIC Cultural Hub</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body data-event-name="Nothing Unusual — Panel Discussion">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-544K83CL"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
 
   <header class="site-header">
     <div class="site-header__inner">
@@ -171,51 +182,21 @@
         </li>
       </ul>
 
-      <button type="submit" form="registerForm" id="registerSubmitBottom" class="btn btn--primary btn--block btn--bottom">
-        Register for this event
-      </button>
+      <a href="events.html" class="btn btn--primary btn--block btn--bottom">
+        Explore more events
+      </a>
     </section>
 
     <aside class="sidebar" id="register">
-      <div class="register-card" id="registerCard">
-        <h2 class="register-card__title">Reserve your seat</h2>
-        <p class="register-card__subtitle">Enter your details and we'll be in touch.</p>
-
-        <form id="registerForm" novalidate>
-          <div class="field">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your full name" autocomplete="name" />
-            <p class="error-message" id="nameError"></p>
-          </div>
-
-          <div class="field">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" name="phone" placeholder="+971 5X XXX XXXX" autocomplete="tel" />
-            <p class="field-hint">UAE (Dubai) numbers only, starting with +971</p>
-            <p class="error-message" id="phoneError"></p>
-          </div>
-
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
-            <p class="error-message" id="emailError"></p>
-          </div>
-
-          <button type="submit" id="registerSubmit" class="btn btn--primary btn--block">Register</button>
-        </form>
+      <div class="register-card concluded-card" id="registerCard">
+        <div class="concluded-card__icon" aria-hidden="true">&#10003;</div>
+        <h2 class="register-card__title">This event is now concluded.</h2>
+        <p class="concluded-card__desc">Please return to our events page for similar exciting events.</p>
+        <a href="events.html" class="btn btn--primary btn--block">Explore more events</a>
       </div>
     </aside>
 
   </main>
-
-  <div class="overlay" id="successOverlay" hidden>
-    <div class="success-card">
-      <div class="success-icon">&#10003;</div>
-      <h2>Thank you for showing interest.</h2>
-      <p>We will share the details with you shortly.</p>
-      <button type="button" class="btn btn--primary" id="successClose">Close</button>
-    </div>
-  </div>
 
   <div class="overlay" id="artistModal" hidden>
     <div class="artist-modal-card">
