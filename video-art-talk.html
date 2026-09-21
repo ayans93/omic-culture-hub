@@ -94,6 +94,39 @@
           temporary design, styled after the Nothing Unusual poster, until final artwork is ready.
         </div>
       </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="register-card" id="registerCard">
+        <h2 class="register-card__title">Reserve your seat</h2>
+        <p class="register-card__subtitle">Enter your details and we'll be in touch.</p>
+
+        <form id="registerForm" novalidate>
+          <div class="field">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Your full name" autocomplete="name" />
+            <p class="error-message" id="nameError"></p>
+          </div>
+
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input type="tel" id="phone" name="phone" placeholder="+971 5X XXX XXXX" autocomplete="tel" />
+            <p class="field-hint">UAE (Dubai) numbers only, starting with +971</p>
+            <p class="error-message" id="phoneError"></p>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
+            <p class="error-message" id="emailError"></p>
+          </div>
+
+          <button type="submit" id="registerSubmit" class="btn btn--primary btn--block">Register</button>
+        </form>
+      </div>
+    </aside>
+
+    <section class="content content--bottom">
 
       <div class="tag-row">
         <span class="tag-pill">TALK</span>
@@ -148,39 +181,6 @@
           ahead of the evening.
         </p>
       </div>
-    </section>
-
-    <aside class="sidebar">
-      <div class="register-card" id="registerCard">
-        <h2 class="register-card__title">Reserve your seat</h2>
-        <p class="register-card__subtitle">Enter your details and we'll be in touch.</p>
-
-        <form id="registerForm" novalidate>
-          <div class="field">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your full name" autocomplete="name" />
-            <p class="error-message" id="nameError"></p>
-          </div>
-
-          <div class="field">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" name="phone" placeholder="+971 5X XXX XXXX" autocomplete="tel" />
-            <p class="field-hint">UAE (Dubai) numbers only, starting with +971</p>
-            <p class="error-message" id="phoneError"></p>
-          </div>
-
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
-            <p class="error-message" id="emailError"></p>
-          </div>
-
-          <button type="submit" id="registerSubmit" class="btn btn--primary btn--block">Register</button>
-        </form>
-      </div>
-    </aside>
-
-    <section class="content content--bottom">
 
       <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Programme</h2>
       <div class="meta-grid">
