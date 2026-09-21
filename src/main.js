@@ -96,8 +96,15 @@ const submitButtons = [
 ].filter(Boolean);
 
 // Lets each page label its registrations distinctly in the notification
-// email, e.g. <body data-event-name="Art Competition">.
+// email, e.g. <body data-event-name="Art Competition">. The date/time/venue/
+// blurb attributes are optional — when a page sets them, the registrant's
+// confirmation email includes full event details; when it doesn't, the
+// email still sends, just without that section.
 const eventName = document.body.dataset.eventName || document.title;
+const eventDate = document.body.dataset.eventDate || '';
+const eventTime = document.body.dataset.eventTime || '';
+const eventVenue = document.body.dataset.eventVenue || '';
+const eventBlurb = document.body.dataset.eventBlurb || '';
 
 const UAE_PHONE_PATTERN = /^\+971[0-9]{8,9}$/;
 
@@ -202,6 +209,10 @@ async function notifyByEmail(data) {
   const body = new URLSearchParams({
     timestamp: new Date().toISOString(),
     event: eventName,
+    eventDate,
+    eventTime,
+    eventVenue,
+    eventBlurb,
     name: data.name,
     phone: data.phone,
     email: data.email,
