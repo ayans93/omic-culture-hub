@@ -30,6 +30,16 @@ if (navToggle) {
   initMobileNav();
 }
 
+const jumpToFormButtons = document.querySelectorAll('[data-jump-to-field]');
+
+// "Take me to the form" buttons (the one at the very bottom of the page,
+// and — on the Art Contest page — the one right after Submission
+// Guidelines) scroll the named field into view and focus it, so the visitor
+// can start typing immediately instead of hunting for the form themselves.
+if (jumpToFormButtons.length) {
+  initJumpToFormButtons();
+}
+
 function initMobileNav() {
   const navPills = document.getElementById('navPills');
   if (!navPills) return;
@@ -82,6 +92,23 @@ function initMobileNav() {
   });
 } // end initMobileNav
 
+function initJumpToFormButtons() {
+  jumpToFormButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const field = document.getElementById(btn.dataset.jumpToField);
+      if (!field) return;
+
+      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Let the smooth scroll get moving before focusing — focusing
+      // immediately can make some mobile browsers jump straight to the
+      // final scroll position (to keep the focused field clear of the
+      // on-screen keyboard) instead of scrolling smoothly.
+      window.setTimeout(() => field.focus({ preventScroll: true }), 400);
+    });
+  });
+} // end initJumpToFormButtons
+
 function goToThankYou(eventName, type) {
   const params = new URLSearchParams({ event: eventName });
   if (type) params.set('type', type);
@@ -90,9 +117,11 @@ function goToThankYou(eventName, type) {
 
 function initRegisterForm() {
 const registerCard = document.getElementById('registerCard');
+// registerSubmitBottom used to be a second real submit button; it's now a
+// "Take me to the form" link (see initJumpToFormButtons), so only the form's
+// own submit button needs the submitting/disabled treatment below.
 const submitButtons = [
   document.getElementById('registerSubmit'),
-  document.getElementById('registerSubmitBottom'),
 ].filter(Boolean);
 
 // Lets each page label its registrations distinctly in the notification
@@ -287,9 +316,12 @@ function initArtworkForm() {
   const formCard = document.getElementById('artworkFormCard');
   const eventName = document.body.dataset.eventName || document.title;
 
+  // artworkSubmitBottom / artworkJumpToFormGuidelines used to be real submit
+  // buttons; they're now "Take me to the form" links (see
+  // initJumpToFormButtons), so only the form's own submit button needs the
+  // submitting/disabled treatment below.
   const submitButtons = [
     document.getElementById('artworkSubmit'),
-    document.getElementById('artworkSubmitBottom'),
   ].filter(Boolean);
 
   const consentCheckbox = document.getElementById('exhibitionConsent');
