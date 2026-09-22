@@ -509,7 +509,7 @@ function initArtworkForm() {
       btn.disabled = isSubmitting || !consentCheckbox.checked;
     });
     if (submitButtons[0]) {
-      submitButtons[0].textContent = isSubmitting ? 'Submitting…' : 'Submit';
+      submitButtons[0].textContent = isSubmitting ? 'Applying…' : 'Apply';
     }
   }
 
