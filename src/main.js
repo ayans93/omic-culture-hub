@@ -221,7 +221,7 @@ function setSubmitting(isSubmitting) {
     btn.disabled = isSubmitting;
   });
   if (submitButtons[0]) {
-    submitButtons[0].textContent = isSubmitting ? 'Registering…' : 'Register';
+    submitButtons[0].textContent = isSubmitting ? 'Applying…' : 'Apply';
   }
 }
 
