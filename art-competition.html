@@ -132,14 +132,20 @@
           </div>
 
           <div class="field">
-            <label for="medium">Medium / Materials</label>
-            <select id="medium" name="medium">
-              <option value="" selected disabled>Select a medium</option>
+            <label for="discipline">Discipline</label>
+            <select id="discipline" name="discipline">
+              <option value="" selected disabled>Select a discipline</option>
               <option value="Painting">Painting</option>
               <option value="Sculpture">Sculpture</option>
               <option value="Installation">Installation</option>
             </select>
-            <p class="error-message" id="mediumError"></p>
+            <p class="error-message" id="disciplineError"></p>
+          </div>
+
+          <div class="field">
+            <label for="mediumMaterial">Medium / Material</label>
+            <input type="text" id="mediumMaterial" name="mediumMaterial" placeholder="e.g. Oil on canvas" />
+            <p class="error-message" id="mediumMaterialError"></p>
           </div>
 
           <div class="field">

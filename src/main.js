@@ -388,11 +388,19 @@ function initArtworkForm() {
         return '';
       },
     },
-    medium: {
-      input: document.getElementById('medium'),
-      error: document.getElementById('mediumError'),
+    discipline: {
+      input: document.getElementById('discipline'),
+      error: document.getElementById('disciplineError'),
       validate(value) {
-        if (!value) return 'Please select a medium.';
+        if (!value) return 'Please select a discipline.';
+        return '';
+      },
+    },
+    mediumMaterial: {
+      input: document.getElementById('mediumMaterial'),
+      error: document.getElementById('mediumMaterialError'),
+      validate(value) {
+        if (!value.trim()) return 'Please enter the medium / material used.';
         return '';
       },
     },
@@ -555,7 +563,8 @@ function initArtworkForm() {
       email: data.artistEmail,
       uaeResident: data.uaeResident,
       artworkTitle: data.artworkTitle,
-      medium: data.medium,
+      discipline: data.discipline,
+      mediumMaterial: data.mediumMaterial,
       dimensions: data.dimensions,
       yearCompleted: data.yearCompleted,
       artistStatement: data.artistStatement,
@@ -605,7 +614,8 @@ function initArtworkForm() {
       artistEmail: fields.artistEmail.input.value.trim(),
       uaeResident: fields.uaeResident.input.value,
       artworkTitle: fields.artworkTitle.input.value.trim(),
-      medium: fields.medium.input.value,
+      discipline: fields.discipline.input.value,
+      mediumMaterial: fields.mediumMaterial.input.value.trim(),
       dimensions: fields.dimensions.input.value.trim(),
       yearCompleted: fields.yearCompleted.input.value.trim(),
       artistStatement: fields.artistStatement.input.value.trim(),

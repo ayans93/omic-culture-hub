@@ -185,7 +185,8 @@ function handleArtworkSubmission(params) {
   var email = params.email || '';
   var uaeResident = params.uaeResident || '';
   var artworkTitle = params.artworkTitle || '';
-  var medium = params.medium || '';
+  var discipline = params.discipline || '';
+  var mediumMaterial = params.mediumMaterial || '';
   var dimensions = params.dimensions || '';
   var yearCompleted = params.yearCompleted || '';
   var artistStatement = params.artistStatement || '';
@@ -219,7 +220,8 @@ function handleArtworkSubmission(params) {
     'Email Address: ' + email,
     'UAE Resident: ' + uaeResident,
     'Artwork Title: ' + artworkTitle,
-    'Medium / Materials: ' + medium,
+    'Discipline: ' + discipline,
+    'Medium / Material: ' + mediumMaterial,
     'Dimensions: ' + dimensions,
     'Year of Completion: ' + yearCompleted,
     'Artist Statement: ' + artistStatement,
