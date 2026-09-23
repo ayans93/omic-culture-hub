@@ -177,7 +177,7 @@
           <div class="field">
             <label class="field-checkbox">
               <input type="checkbox" id="exhibitionConsent" name="exhibitionConsent" />
-              <span class="field-checkbox__label">I acknowledge and confirm that my artwork will be available for exhibition at OMIC Art from 23 October to 3 November 2026.</span>
+              <span class="field-checkbox__label">I agree to the <a href="/documents/omic-art-prize-2026-rules-and-regulations.pdf" id="rulesModalTrigger">Rules &amp; Regulations</a> of the art competition.</span>
             </label>
           </div>
 
@@ -209,20 +209,6 @@
           <div>
             <p class="meta-card__label">Submission deadline</p>
             <p class="meta-card__value">20 October 2026</p>
-          </div>
-        </div>
-        <div class="meta-card">
-          <span class="meta-card__dot dot--lavender"></span>
-          <div>
-            <p class="meta-card__label">Shortlist exhibition &amp; awards</p>
-            <p class="meta-card__value">31 October 2026</p>
-          </div>
-        </div>
-        <div class="meta-card">
-          <span class="meta-card__dot dot--green"></span>
-          <div>
-            <p class="meta-card__label">Exhibition closes</p>
-            <p class="meta-card__value">8 November 2026</p>
           </div>
         </div>
       </div>
@@ -302,7 +288,7 @@
             <li>The artwork must be an original work created by the applicant.</li>
             <li>The artwork must not have been previously exhibited publicly.</li>
             <li>The artwork must not have previously won an award in another art competition.</li>
-            <li>Selected artworks must be available for exhibition at OMIC Art from 23 October to 3 November 2026.</li>
+            <li>Selected artworks must be available for exhibition at OMIC Art.</li>
             <li>There is no size limitation.</li>
           </ul>
         </div>
@@ -387,6 +373,29 @@
     </section>
 
   </main>
+
+  <div class="overlay" id="rulesModal" hidden>
+    <div class="pdf-modal-card">
+      <div class="pdf-modal-header">
+        <h2 class="pdf-modal-title">Rules &amp; Regulations</h2>
+        <div class="pdf-modal-actions">
+          <a
+            class="btn btn--secondary pdf-modal-download"
+            href="/documents/omic-art-prize-2026-rules-and-regulations.pdf"
+            download="OMIC Art Prize 2026 - Rules and Regulations.pdf"
+          >
+            Download
+          </a>
+          <button type="button" class="pdf-modal-close" id="rulesModalClose" aria-label="Close">&times;</button>
+        </div>
+      </div>
+      <iframe
+        class="pdf-modal-frame"
+        id="rulesModalFrame"
+        title="OMIC Art Prize 2026 Rules &amp; Regulations"
+      ></iframe>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="site-footer__inner">

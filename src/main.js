@@ -23,6 +23,13 @@ if (artistModal) {
   initArtistModal();
 }
 
+const rulesModalTrigger = document.getElementById('rulesModalTrigger');
+
+// Only the Art Contest page has the Rules & Regulations consent link + modal.
+if (rulesModalTrigger) {
+  initRulesModal();
+}
+
 const navToggle = document.getElementById('navToggle');
 
 // The mobile "burger" menu button is on every page's shared header.
@@ -661,3 +668,43 @@ function initArtistModal() {
     if (event.key === 'Escape' && !artistModal.hidden) closeModal();
   });
 } // end initArtistModal
+
+// The consent checkbox's "Rules & Regulations" link opens the PDF in a
+// modal viewer instead of navigating away, so the applicant can read it
+// without losing their place (or their in-progress form). The href still
+// points straight at the PDF, so the link degrades gracefully (opens the
+// file directly) for anyone browsing with JavaScript disabled.
+function initRulesModal() {
+  const rulesModal = document.getElementById('rulesModal');
+  const rulesModalFrame = document.getElementById('rulesModalFrame');
+  const rulesModalClose = document.getElementById('rulesModalClose');
+  const pdfUrl = rulesModalTrigger.getAttribute('href');
+
+  function openModal() {
+    // Only point the iframe at the PDF once it's actually needed, rather
+    // than loading it on every page visit.
+    if (!rulesModalFrame.src) {
+      rulesModalFrame.src = pdfUrl;
+    }
+    rulesModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    rulesModal.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  rulesModalTrigger.addEventListener('click', (event) => {
+    event.preventDefault();
+    openModal();
+  });
+
+  rulesModalClose.addEventListener('click', closeModal);
+  rulesModal.addEventListener('click', (event) => {
+    if (event.target === rulesModal) closeModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !rulesModal.hidden) closeModal();
+  });
+} // end initRulesModal
