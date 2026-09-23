@@ -344,6 +344,7 @@ a {
 .dot--blue { background: var(--blue); }
 .dot--lavender { background: var(--lavender); }
 .dot--green { background: var(--green); }
+.dot--muted { background: var(--muted); }
 
 .poster {
   width: 100%;
@@ -805,6 +806,17 @@ a {
   gap: 18px;
 }
 
+/* A more compact variant for a long jury/panel list sitting alongside a
+   long form: more columns and shorter (non-square) photos keep the section
+   from running much taller than the form next to it. */
+.profile-grid--compact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.profile-grid--compact .profile-card__photo {
+  aspect-ratio: 1 / 1;
+}
+
 .profile-card {
   background: var(--card);
   border: 1px solid var(--cream-line);
@@ -926,6 +938,17 @@ a {
   align-self: start;
   grid-column: 2;
   grid-row: 1 / 3;
+}
+
+/* Some pages (the Art Contest submission form in particular) pair a very
+   tall form with an even taller info column. Keeping the form sticky there
+   means most of it sits pinned off the bottom of the screen, then rushes
+   past all at once when the sticky release finally catches up with the
+   page's scroll position. On those pages the form is set to scroll in
+   normal document flow instead, so it moves with the page at the same
+   rate the whole way down. */
+.sidebar--flow {
+  position: static;
 }
 
 .register-card {
@@ -1544,7 +1567,7 @@ a {
 .event-poster {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 3 / 2;
   border-radius: var(--radius);
   border: 1px solid var(--cream-line);
   overflow: hidden;
@@ -1924,6 +1947,10 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .profile-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .menu-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1952,6 +1979,10 @@ a {
   }
 
   .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-grid--compact {
     grid-template-columns: 1fr;
   }
 
