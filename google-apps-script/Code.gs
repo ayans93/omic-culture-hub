@@ -6,7 +6,7 @@
  * Setup instructions: see EMAIL_NOTIFICATIONS_SETUP.md in the project root.
  */
 
-var NOTIFY_EMAIL = 'ayan@dviu.in';
+var NOTIFY_EMAIL = 'gallery@omic.spot';
 
 // Display name the registrant-facing confirmation emails are sent under.
 // The email still goes out through whichever Google account authorized

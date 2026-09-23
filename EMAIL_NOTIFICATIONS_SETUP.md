@@ -1,4 +1,4 @@
-# Emailing ayan@dviu.in on every registration
+# Emailing gallery@omic.spot on every registration
 
 A static site can't send email by itself — there's no mail server behind
 it. The standard, no-backend way to bridge the two is a small Google Apps
@@ -20,7 +20,7 @@ minutes to set up once, using any Google account.
    paste it in.
 3. Click the save icon (or Ctrl/Cmd+S).
 
-The script emails `ayan@dviu.in` with the registrant's name, phone, email,
+The script emails `gallery@omic.spot` with the registrant's name, phone, email,
 and submission time every time a simple registration form is submitted
 (Video + Art Talk). For the Art Contest's artwork submission form, it also
 saves the uploaded file to a Google Drive folder named "OMIC Art Contest
@@ -58,7 +58,7 @@ Save the file. Restart `npm run dev` if it's already running.
 1. Open the site, fill in the registration form with a valid UAE number
    (e.g. `+971 50 123 4567`), and submit.
 2. You should see the success screen, and an email should land in
-   `ayan@dviu.in`'s inbox within a few seconds (check spam the first time).
+   `gallery@omic.spot`'s inbox within a few seconds (check spam the first time).
 
 ## Notes
 
