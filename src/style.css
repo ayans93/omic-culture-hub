@@ -1978,9 +1978,9 @@ a {
   }
 
   /* Undo the desktop grid placement so .content--top, the form, and
-     .content--bottom simply stack in source order — which is what puts
-     the form right before the section it was written to precede, instead
-     of always first on the page. */
+     .content--bottom simply stack in source order — which is what lets the
+     form's position in the HTML control where it lands on mobile, instead
+     of always sitting in the fixed sidebar column. */
   .content--top,
   .content--bottom,
   .sidebar {
@@ -1990,6 +1990,15 @@ a {
 
   .sidebar {
     position: static;
+  }
+
+  /* On the Art Contest page the form sits in the sidebar (desktop) but at
+     the very bottom of the page on mobile — right after this same "Apply"
+     button, which makes the button redundant there. On desktop the form is
+     off in its own column, so the button still earns its keep as a jump
+     back up to it. */
+  #artworkJumpToFormBottom {
+    display: none;
   }
 
   .meta-grid {
