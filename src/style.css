@@ -317,6 +317,13 @@ a {
   grid-row: 2;
 }
 
+/* Pages without a sidebar (e.g. an exhibition with no registration form)
+   let their content take the full width instead of leaving the second
+   column empty. */
+.content--full {
+  grid-column: 1 / -1;
+}
+
 /* Art Contest page: left (details) and right (form) columns each scroll
    independently within the viewport, instead of the whole page scrolling as
    one. Scoped to desktop only — on mobile the two columns stack in normal
