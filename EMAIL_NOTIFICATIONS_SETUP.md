@@ -28,6 +28,16 @@ Submissions" and includes a shareable link to it in the email, along with
 all the artwork fields. If you ever want to notify a different address,
 change the `NOTIFY_EMAIL` constant at the top of the file.
 
+On top of that team notification, the simple registration form also emails
+**the person who just registered** a "You're registered" confirmation —
+their name, plus the event's date/time/venue when the page provides them
+(some pages set these, some don't; the email just leaves out whatever isn't
+set). This only applies to the registration form (Video + Art Talk) — the
+Art Contest's artwork submission form does not currently send the artist a
+confirmation of their own, only the team notification above. The sender
+name shown to recipients ("OMIC Cultural Hub") is set by the `SENDER_NAME`
+constant near the top of the file.
+
 ## 3. Deploy it as a Web App
 
 1. Click **Deploy → New deployment**.
@@ -59,6 +69,8 @@ Save the file. Restart `npm run dev` if it's already running.
    (e.g. `+971 50 123 4567`), and submit.
 2. You should see the success screen, and an email should land in
    `gallery@omic.spot`'s inbox within a few seconds (check spam the first time).
+3. The email address you registered with should also get its own "You're
+   registered" confirmation within the same few seconds.
 
 ## Notes
 
@@ -74,6 +86,10 @@ Save the file. Restart `npm run dev` if it's already running.
   required now: the artwork-submission handling (saving files to Drive) was
   added after the first deployment, so you must push a new version for it
   to work.
+- If your live deployment was created before the registrant confirmation
+  email existed, it won't send those yet either — the same "paste the
+  current `Code.gs` in, then Deploy → Manage deployments → Edit → New
+  version" step above applies here too.
 - The updated script saves uploaded artwork files to Google Drive, which
   needs an extra permission scope beyond sending mail. The **first**
   artwork submission after you redeploy will likely need you to
