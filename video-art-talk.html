@@ -63,33 +63,12 @@
       <img class="poster" src="/posters/panel-discussion-afterimage.jpg" alt="Panel Discussion + Afterimage, video arts screening. Panelists Nujoom Alghanem, Khalil Abdulwahid, Ali Ettehad, Hind Mezaina, and Manish Mundra, moderated by Valentina della Rocca. Sep 26, 5:00 PM at OMIC Theatre, Goshi Warehouse City. Curated by Narges Soleimanzadeh." />
     </section>
 
-    <aside class="sidebar">
-      <div class="register-card" id="registerCard">
-        <h2 class="register-card__title">Reserve your seat</h2>
-        <p class="register-card__subtitle">Enter your details and we'll be in touch.</p>
-
-        <form id="registerForm" novalidate>
-          <div class="field">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your full name" autocomplete="name" />
-            <p class="error-message" id="nameError"></p>
-          </div>
-
-          <div class="field">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" name="phone" placeholder="+971 5X XXX XXXX" autocomplete="tel" />
-            <p class="field-hint">UAE (Dubai) numbers only, starting with +971</p>
-            <p class="error-message" id="phoneError"></p>
-          </div>
-
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
-            <p class="error-message" id="emailError"></p>
-          </div>
-
-          <button type="submit" id="registerSubmit" class="btn btn--primary btn--block">Apply</button>
-        </form>
+    <aside class="sidebar" id="register">
+      <div class="register-card concluded-card" id="registerCard">
+        <div class="concluded-card__icon" aria-hidden="true">&#10003;</div>
+        <h2 class="register-card__title">Event has been conducted already.</h2>
+        <p class="concluded-card__desc">Please return to our events page for similar exciting events.</p>
+        <a href="events.html" class="btn btn--primary btn--block">Explore more events</a>
       </div>
     </aside>
 
@@ -142,10 +121,6 @@
           exploring video art in the UAE. Panelists Dr. Nujoom Alghanem and Khalil
           Abdulwahid join moderator Valentina della Rocca to discuss their work, followed by
           an open Q&amp;A and a closing screening of a three-work playlist.
-        </p>
-        <p>
-          Seating is limited. Register below to reserve your spot and receive event details
-          ahead of the evening.
         </p>
       </div>
 
@@ -332,9 +307,9 @@
         </li>
       </ul>
 
-      <button type="button" id="registerJumpToFormBottom" class="btn btn--primary btn--block btn--bottom" data-jump-to-field="name">
-        Apply
-      </button>
+      <a href="events.html" class="btn btn--primary btn--block btn--bottom">
+        Explore more events
+      </a>
     </section>
 
   </main>
