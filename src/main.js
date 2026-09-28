@@ -335,7 +335,14 @@ function initArtworkForm() {
 
   const ANY_PHONE_PATTERN = /^\+?[0-9]{7,15}$/;
   const CURRENT_YEAR = new Date().getFullYear();
-  const STATEMENT_LIMIT = 150;
+  // Rules & Regulations, Section 6: "Artist statement (maximum 150 words)".
+  const STATEMENT_WORD_LIMIT = 150;
+
+  function countWords(value) {
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).length;
+  }
 
   const fields = {
     artistName: {
@@ -432,8 +439,8 @@ function initArtworkForm() {
       validate(value) {
         const trimmed = value.trim();
         if (!trimmed) return 'Please enter an artist statement.';
-        if (trimmed.length > STATEMENT_LIMIT) {
-          return `Keep your statement to ${STATEMENT_LIMIT} characters or fewer.`;
+        if (countWords(trimmed) > STATEMENT_WORD_LIMIT) {
+          return `Keep your statement to ${STATEMENT_WORD_LIMIT} words or fewer.`;
         }
         return '';
       },
@@ -498,13 +505,13 @@ function initArtworkForm() {
     });
   });
 
-  // Live character counter for the artist statement.
+  // Live word counter for the artist statement.
   const statementInput = fields.artistStatement.input;
   const statementCounter = document.getElementById('artistStatementCounter');
   function updateStatementCounter() {
-    const length = statementInput.value.length;
-    statementCounter.textContent = `${length}/${STATEMENT_LIMIT}`;
-    statementCounter.classList.toggle('is-limit', length > STATEMENT_LIMIT);
+    const words = countWords(statementInput.value);
+    statementCounter.textContent = `${words}/${STATEMENT_WORD_LIMIT} words`;
+    statementCounter.classList.toggle('is-limit', words > STATEMENT_WORD_LIMIT);
   }
   statementInput.addEventListener('input', updateStatementCounter);
   updateStatementCounter();
