@@ -31,14 +31,15 @@ change the `NOTIFY_EMAIL` constant at the top of the file.
 Every Art Contest submission is also logged automatically as a new row in
 the "Copy of Art Prize Entries" Google Sheet — no more copy-pasting each
 entry in from the notification email by hand. The columns match the sheet's
-existing layout: Name, Mobile Number, Email Address, UAE Resident, Artwork
-Title, Discipline, Medium / Material, Dimensions, Year of Completion, Artist
-Statement (the statement and short biography combined into one cell, same
-as the sheet's existing rows), and Art link (the Drive link to the uploaded
-file — this column was previously always left blank). The spreadsheet ID
-and tab name are set by the `ART_PRIZE_SHEET_ID` and `ART_PRIZE_SHEET_TAB_NAME`
-constants near the top of the file, if the sheet is ever moved, renamed, or
-copied.
+layout: Name, Mobile Number, Email Address, UAE Resident, Artwork Title,
+Discipline, Medium / Material, Dimensions, Year of Completion, Artist
+Statement, Short bio, and Art link (the Drive link to the uploaded file —
+this column had been sitting blank before this was automated). The
+spreadsheet ID and tab name are set by the `ART_PRIZE_SHEET_ID` and
+`ART_PRIZE_SHEET_TAB_NAME` constants near the top of the file, if the sheet
+is ever moved, renamed, or copied — and if a column is ever added, removed,
+or reordered on the sheet, `appendArtworkSubmissionToSheet_` needs its
+column order updated to match.
 
 On top of that team notification, the simple registration form also emails
 **the person who just registered** a "You're registered" confirmation —

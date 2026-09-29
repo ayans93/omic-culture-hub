@@ -261,7 +261,11 @@ function handleArtworkSubmission(params) {
       fileUrl: fileUrl,
     });
   } catch (err) {
-    // Swallow — see comment above.
+    // Swallow -- see comment above -- but log it so it's visible in the
+    // Apps Script project's Executions log (left sidebar → clock icon) if
+    // rows ever stop showing up. A caught error here never surfaces as a
+    // red "Error" line in a manual test run, only in that log.
+    Logger.log('appendArtworkSubmissionToSheet_ failed: ' + err);
   }
 
   return ContentService
@@ -270,15 +274,14 @@ function handleArtworkSubmission(params) {
 }
 
 // Appends one row to the Art Prize tracking spreadsheet, in the same column
-// order the sheet already uses: Name, Mobile Number, Email Address, UAE
-// Resident, Artwork Title, Discipline, Medium / Material, Dimensions, Year
-// of Completion, Artist Statement, Art link.
+// order the sheet uses: Name, Mobile Number, Email Address, UAE Resident,
+// Artwork Title, Discipline, Medium / Material, Dimensions, Year of
+// Completion, Artist Statement, Short bio, Art link.
 //
-// The sheet has a single "Artist Statement:" column that covers both the
-// artist statement and the short biography (that's how entries have been
-// transcribed by hand from the notification emails so far), so this
-// combines the two fields the same way: statement, then a
-// "Short Artist Biography: ..." line if one was provided.
+// "Short bio" is its own column (added after this integration was first
+// written -- earlier entries had it folded into the Artist Statement cell
+// by hand instead), so the statement and bio are written separately now,
+// matching the current layout.
 //
 // "Art link" has been sitting empty on every existing row -- nobody's been
 // pasting in the uploaded artwork's Drive link by hand. This fills it in
@@ -286,11 +289,6 @@ function handleArtworkSubmission(params) {
 function appendArtworkSubmissionToSheet_(info) {
   var sheet = SpreadsheetApp.openById(ART_PRIZE_SHEET_ID).getSheetByName(ART_PRIZE_SHEET_TAB_NAME);
   if (!sheet) return;
-
-  var statement = info.artistStatement || '';
-  if (info.artistBio) {
-    statement += (statement ? '\n' : '') + 'Short Artist Biography: ' + info.artistBio;
-  }
 
   sheet.appendRow([
     info.name,
@@ -302,7 +300,8 @@ function appendArtworkSubmissionToSheet_(info) {
     info.mediumMaterial,
     info.dimensions,
     info.yearCompleted,
-    statement,
+    info.artistStatement || '',
+    info.artistBio || '',
     info.fileUrl || '',
   ]);
 }
