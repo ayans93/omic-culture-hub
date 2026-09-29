@@ -321,10 +321,6 @@ form.addEventListener('submit', async (event) => {
 // checked before the Submit button is even clickable.
 function initArtworkForm() {
   const formCard = document.getElementById('artworkFormCard');
-  const formStep = document.getElementById('artworkFormStep');
-  const thankYouStep = document.getElementById('artworkThankYou');
-  const thankYouTitle = document.getElementById('artworkThankYouTitle');
-  const thankYouDesc = document.getElementById('artworkThankYouDesc');
   const eventName = document.body.dataset.eventName || document.title;
 
   // artworkSubmitBottom / artworkJumpToFormGuidelines used to be real submit
@@ -535,7 +531,7 @@ function initArtworkForm() {
       btn.disabled = isSubmitting || !consentCheckbox.checked;
     });
     if (submitButtons[0]) {
-      submitButtons[0].textContent = isSubmitting ? 'Applying…' : 'Apply';
+      submitButtons[0].textContent = isSubmitting ? 'Uploading…' : 'Apply';
     }
   }
 
@@ -551,6 +547,80 @@ function initArtworkForm() {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  }
+
+  // The Art Contest's Apps Script endpoint has to finish saving the artwork
+  // to Drive, emailing the team, and logging the sheet row — all
+  // synchronously — before it can respond, and the browser has to finish
+  // uploading the whole (base64-encoded, ~33% larger than the original)
+  // file before that even starts. That combined wait is what leaves
+  // "Applying…" on screen for a long time, especially for a multi-megabyte
+  // photo straight off someone's phone. We can't hide that wait behind an
+  // early redirect: the visitor needs to actually land on thank-you.html
+  // (not just see something that looks like it) because that page's view is
+  // what Google Ad Manager's conversion tracking counts. So instead, this
+  // shrinks the thing that's actually slow — the file itself — before it's
+  // sent, by downscaling and re-encoding large images client-side. A phone
+  // photo often drops from several MB to a few hundred KB with no visible
+  // quality loss at the size a jury reviews it on screen, which cuts both
+  // the upload time and Apps Script's Drive-save time by roughly the same
+  // ratio. PDFs and SVGs are left untouched (not worth rasterizing), and if
+  // anything goes wrong, or the "compressed" version doesn't come out
+  // smaller, the original file is uploaded as-is.
+  const COMPRESSIBLE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/avif'];
+  const COMPRESS_ABOVE_BYTES = 1.5 * 1024 * 1024; // don't bother under ~1.5MB
+  const COMPRESS_MAX_DIMENSION = 1920; // longest side, in pixels
+  const COMPRESS_JPEG_QUALITY = 0.82;
+
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => resolve({ img, url });
+      img.onerror = (err) => {
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      img.src = url;
+    });
+  }
+
+  async function compressArtworkFile(file) {
+    if (!COMPRESSIBLE_IMAGE_TYPES.includes(file.type) || file.size <= COMPRESS_ABOVE_BYTES) {
+      return file;
+    }
+
+    let img;
+    let objectUrl;
+    try {
+      ({ img, url: objectUrl } = await loadImageFromFile(file));
+
+      const longestSide = Math.max(img.naturalWidth, img.naturalHeight);
+      const scale = Math.min(1, COMPRESS_MAX_DIMENSION / longestSide);
+      const width = Math.round(img.naturalWidth * scale);
+      const height = Math.round(img.naturalHeight * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', COMPRESS_JPEG_QUALITY)
+      );
+
+      if (!blob || blob.size >= file.size) {
+        return file; // Compression didn't actually help — keep the original.
+      }
+
+      const newName = file.name.replace(/\.[^./\\]+$/, '') + '.jpg';
+      return new File([blob], newName, { type: 'image/jpeg' });
+    } catch (err) {
+      console.error('Could not compress artwork image, uploading the original file instead:', err);
+      return file;
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    }
   }
 
   async function notifySubmissionByEmail(data, file) {
@@ -599,26 +669,6 @@ function initArtworkForm() {
     }
   }
 
-  // Swaps the form out for an inline "Thank you" confirmation, without
-  // navigating to a new page. See the note above notifySubmissionByEmail's
-  // call site for why this form doesn't use goToThankYou() like the simple
-  // registration form does.
-  function showArtworkThankYou() {
-    if (!formStep || !thankYouStep) return;
-    if (thankYouTitle) {
-      thankYouTitle.textContent = 'Thank you for your submission!';
-    }
-    if (thankYouDesc) {
-      thankYouDesc.textContent = eventName
-        ? `Your artwork has been submitted for ${eventName}. Our jury will review all eligible entries and shortlisted artists will be contacted directly.`
-        : 'Your artwork has been submitted. Our jury will review all eligible entries and shortlisted artists will be contacted directly.';
-    }
-    formStep.hidden = true;
-    thankYouStep.hidden = false;
-    thankYouStep.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    thankYouStep.focus({ preventScroll: true });
-  }
-
   const form = document.getElementById('artworkForm');
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -652,27 +702,15 @@ function initArtworkForm() {
       artistStatement: fields.artistStatement.input.value.trim(),
       artistBio: fields.artistBio.input.value.trim(),
     };
-    const file = fields.artworkFile.input.files[0];
-
     setSubmitting(true);
 
-    // Unlike the simple registration form, this one carries an uploaded
-    // file as base64 in the request body, which is almost always well over
-    // the ~64KB limit that navigator.sendBeacon (and fetch's "keepalive"
-    // flag) impose in exchange for surviving a page navigation. Apps Script
-    // also processes the Drive upload, email, and sheet logging
-    // synchronously before it responds, which is what made the "Applying…"
-    // button sit for a long time — waiting here doesn't gain us anything
-    // (the response is opaque anyway, thanks to "no-cors"), but navigating
-    // away *would* risk the browser cancelling the upload mid-flight before
-    // Apps Script ever receives all of it. So instead of awaiting this and
-    // then calling goToThankYou(), we let it keep running in the background
-    // on this same page (never unloaded, so nothing cancels it) and show
-    // the confirmation immediately.
-    notifySubmissionByEmail(data, file).catch((err) => {
-      console.error('Artwork submission notification failed:', err);
-    });
-    showArtworkThankYou();
+    // Ad Manager's conversion tracking fires on an actual view of
+    // thank-you.html, so this has to land there for real — no showing a
+    // stand-in confirmation and redirecting later. See compressArtworkFile's
+    // comment above for how the wait itself is kept down instead.
+    const file = await compressArtworkFile(fields.artworkFile.input.files[0]);
+    await notifySubmissionByEmail(data, file);
+    goToThankYou(eventName, 'submission');
   });
 } // end initArtworkForm
 
