@@ -33,8 +33,10 @@ the "Copy of Art Prize Entries" Google Sheet — no more copy-pasting each
 entry in from the notification email by hand. The columns match the sheet's
 layout: Name, Mobile Number, Email Address, UAE Resident, Artwork Title,
 Discipline, Medium / Material, Dimensions, Year of Completion, Artist
-Statement, Short bio, and Art link (the Drive link to the uploaded file —
-this column had been sitting blank before this was automated). The
+Statement, Short bio, Art link (the Drive link to the uploaded file — this
+column had been sitting blank before this was automated), and Submission
+Timestamp (when the form was submitted, in ISO 8601 — e.g.
+2026-09-29T10:42:18.875Z). The
 spreadsheet ID and tab name are set by the `ART_PRIZE_SHEET_ID` and
 `ART_PRIZE_SHEET_TAB_NAME` constants near the top of the file, if the sheet
 is ever moved, renamed, or copied — and if a column is ever added, removed,

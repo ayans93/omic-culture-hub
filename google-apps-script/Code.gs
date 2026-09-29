@@ -259,6 +259,7 @@ function handleArtworkSubmission(params) {
       artistStatement: artistStatement,
       artistBio: artistBio,
       fileUrl: fileUrl,
+      timestamp: timestamp,
     });
   } catch (err) {
     // Swallow -- see comment above -- but log it so it's visible in the
@@ -276,7 +277,7 @@ function handleArtworkSubmission(params) {
 // Appends one row to the Art Prize tracking spreadsheet, in the same column
 // order the sheet uses: Name, Mobile Number, Email Address, UAE Resident,
 // Artwork Title, Discipline, Medium / Material, Dimensions, Year of
-// Completion, Artist Statement, Short bio, Art link.
+// Completion, Artist Statement, Short bio, Art link, Submission Timestamp.
 //
 // "Short bio" is its own column (added after this integration was first
 // written -- earlier entries had it folded into the Artist Statement cell
@@ -286,6 +287,10 @@ function handleArtworkSubmission(params) {
 // "Art link" has been sitting empty on every existing row -- nobody's been
 // pasting in the uploaded artwork's Drive link by hand. This fills it in
 // automatically from the file this script just saved to Drive, if any.
+//
+// "Submission Timestamp" (column M) was added later too -- rows logged
+// before this column existed are simply blank here, same as "Art link" was
+// for rows logged before that one existed.
 function appendArtworkSubmissionToSheet_(info) {
   var sheet = SpreadsheetApp.openById(ART_PRIZE_SHEET_ID).getSheetByName(ART_PRIZE_SHEET_TAB_NAME);
   if (!sheet) return;
@@ -303,6 +308,7 @@ function appendArtworkSubmissionToSheet_(info) {
     info.artistStatement || '',
     info.artistBio || '',
     info.fileUrl || '',
+    info.timestamp || '',
   ]);
 }
 
