@@ -2011,6 +2011,12 @@ a {
   line-height: 1.6;
 }
 
+/* Second stacked button under a .btn--block one, e.g. the artwork-submission
+   inline thank-you state's "Go to homepage" below "Explore more events". */
+.btn--stacked {
+  margin-top: 10px;
+}
+
 /* Responsive */
 @media (max-width: 860px) {
   .layout {

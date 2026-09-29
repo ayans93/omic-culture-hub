@@ -321,6 +321,10 @@ form.addEventListener('submit', async (event) => {
 // checked before the Submit button is even clickable.
 function initArtworkForm() {
   const formCard = document.getElementById('artworkFormCard');
+  const formStep = document.getElementById('artworkFormStep');
+  const thankYouStep = document.getElementById('artworkThankYou');
+  const thankYouTitle = document.getElementById('artworkThankYouTitle');
+  const thankYouDesc = document.getElementById('artworkThankYouDesc');
   const eventName = document.body.dataset.eventName || document.title;
 
   // artworkSubmitBottom / artworkJumpToFormGuidelines used to be real submit
@@ -595,6 +599,26 @@ function initArtworkForm() {
     }
   }
 
+  // Swaps the form out for an inline "Thank you" confirmation, without
+  // navigating to a new page. See the note above notifySubmissionByEmail's
+  // call site for why this form doesn't use goToThankYou() like the simple
+  // registration form does.
+  function showArtworkThankYou() {
+    if (!formStep || !thankYouStep) return;
+    if (thankYouTitle) {
+      thankYouTitle.textContent = 'Thank you for your submission!';
+    }
+    if (thankYouDesc) {
+      thankYouDesc.textContent = eventName
+        ? `Your artwork has been submitted for ${eventName}. Our jury will review all eligible entries and shortlisted artists will be contacted directly.`
+        : 'Your artwork has been submitted. Our jury will review all eligible entries and shortlisted artists will be contacted directly.';
+    }
+    formStep.hidden = true;
+    thankYouStep.hidden = false;
+    thankYouStep.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    thankYouStep.focus({ preventScroll: true });
+  }
+
   const form = document.getElementById('artworkForm');
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -631,8 +655,24 @@ function initArtworkForm() {
     const file = fields.artworkFile.input.files[0];
 
     setSubmitting(true);
-    await notifySubmissionByEmail(data, file);
-    goToThankYou(eventName, 'submission');
+
+    // Unlike the simple registration form, this one carries an uploaded
+    // file as base64 in the request body, which is almost always well over
+    // the ~64KB limit that navigator.sendBeacon (and fetch's "keepalive"
+    // flag) impose in exchange for surviving a page navigation. Apps Script
+    // also processes the Drive upload, email, and sheet logging
+    // synchronously before it responds, which is what made the "Applying…"
+    // button sit for a long time — waiting here doesn't gain us anything
+    // (the response is opaque anyway, thanks to "no-cors"), but navigating
+    // away *would* risk the browser cancelling the upload mid-flight before
+    // Apps Script ever receives all of it. So instead of awaiting this and
+    // then calling goToThankYou(), we let it keep running in the background
+    // on this same page (never unloaded, so nothing cancels it) and show
+    // the confirmation immediately.
+    notifySubmissionByEmail(data, file).catch((err) => {
+      console.error('Artwork submission notification failed:', err);
+    });
+    showArtworkThankYou();
   });
 } // end initArtworkForm
 
