@@ -28,6 +28,18 @@ Submissions" and includes a shareable link to it in the email, along with
 all the artwork fields. If you ever want to notify a different address,
 change the `NOTIFY_EMAIL` constant at the top of the file.
 
+Every Art Contest submission is also logged automatically as a new row in
+the "Copy of Art Prize Entries" Google Sheet — no more copy-pasting each
+entry in from the notification email by hand. The columns match the sheet's
+existing layout: Name, Mobile Number, Email Address, UAE Resident, Artwork
+Title, Discipline, Medium / Material, Dimensions, Year of Completion, Artist
+Statement (the statement and short biography combined into one cell, same
+as the sheet's existing rows), and Art link (the Drive link to the uploaded
+file — this column was previously always left blank). The spreadsheet ID
+and tab name are set by the `ART_PRIZE_SHEET_ID` and `ART_PRIZE_SHEET_TAB_NAME`
+constants near the top of the file, if the sheet is ever moved, renamed, or
+copied.
+
 On top of that team notification, the simple registration form also emails
 **the person who just registered** a "You're registered" confirmation —
 their name, plus the event's date/time/venue when the page provides them
@@ -101,6 +113,17 @@ Save the file. Restart `npm run dev` if it's already running.
   prompted (choose your account → Advanced → Go to project (unsafe) →
   Allow). After that, submissions from the site will work without further
   prompts.
+- Logging to the spreadsheet needs one more scope on top of that (Google
+  Sheets access), so expect one more "Authorization required" consent
+  screen the first time — the same **Run** → **Allow** steps above,
+  triggered from the same `handleArtworkSubmission` test run, cover it.
+  It also needs the Google account the script runs as to have **edit**
+  access to the "Copy of Art Prize Entries" spreadsheet — if that account
+  isn't already an editor on the sheet, open the sheet's Share dialog and
+  add it before testing. If the account can't reach the sheet, the
+  submission and its email notification still go through as normal; the
+  row just silently won't be added (check the Apps Script project's
+  **Executions** log if a submission's row seems to be missing).
 - The request is sent with `mode: 'no-cors'`, which is required for a
   browser to call an Apps Script Web App directly. This means the page
   can't read the response back, so it can't detect a failure on Google's

@@ -19,6 +19,13 @@ var SENDER_NAME = 'OMIC Cultural Hub';
 // already exist.
 var ARTWORK_DRIVE_FOLDER_NAME = 'OMIC Art Contest Submissions';
 
+// The "Copy of Art Prize Entries" tracking spreadsheet that Art Contest
+// submissions get logged to automatically (see appendArtworkSubmissionToSheet_
+// below). The account this script runs as must have edit access to it.
+// https://docs.google.com/spreadsheets/d/1gC0ZrcfEyCKFFlMKQHbNzErxD9QVE8FfBIoQjIB9I7U
+var ART_PRIZE_SHEET_ID = '1gC0ZrcfEyCKFFlMKQHbNzErxD9QVE8FfBIoQjIB9I7U';
+var ART_PRIZE_SHEET_TAB_NAME = 'Sheet1';
+
 function doPost(e) {
   var params = (e && e.parameter) || {};
   var formType = params.formType || 'registration';
@@ -232,9 +239,72 @@ function handleArtworkSubmission(params) {
 
   MailApp.sendEmail(NOTIFY_EMAIL, subject, body);
 
+  // Log the entry to the tracking spreadsheet, the same way it's been
+  // transcribed by hand from these emails so far. Best-effort: if the sheet
+  // is unreachable (e.g. a permissions issue) or its layout changed, that
+  // shouldn't fail the submission — the team notification above already
+  // went out, and this is a convenience on top of it, not the source of
+  // truth.
+  try {
+    appendArtworkSubmissionToSheet_({
+      name: name,
+      phone: phone,
+      email: email,
+      uaeResident: uaeResident,
+      artworkTitle: artworkTitle,
+      discipline: discipline,
+      mediumMaterial: mediumMaterial,
+      dimensions: dimensions,
+      yearCompleted: yearCompleted,
+      artistStatement: artistStatement,
+      artistBio: artistBio,
+      fileUrl: fileUrl,
+    });
+  } catch (err) {
+    // Swallow — see comment above.
+  }
+
   return ContentService
     .createTextOutput(JSON.stringify({ result: 'success' }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Appends one row to the Art Prize tracking spreadsheet, in the same column
+// order the sheet already uses: Name, Mobile Number, Email Address, UAE
+// Resident, Artwork Title, Discipline, Medium / Material, Dimensions, Year
+// of Completion, Artist Statement, Art link.
+//
+// The sheet has a single "Artist Statement:" column that covers both the
+// artist statement and the short biography (that's how entries have been
+// transcribed by hand from the notification emails so far), so this
+// combines the two fields the same way: statement, then a
+// "Short Artist Biography: ..." line if one was provided.
+//
+// "Art link" has been sitting empty on every existing row -- nobody's been
+// pasting in the uploaded artwork's Drive link by hand. This fills it in
+// automatically from the file this script just saved to Drive, if any.
+function appendArtworkSubmissionToSheet_(info) {
+  var sheet = SpreadsheetApp.openById(ART_PRIZE_SHEET_ID).getSheetByName(ART_PRIZE_SHEET_TAB_NAME);
+  if (!sheet) return;
+
+  var statement = info.artistStatement || '';
+  if (info.artistBio) {
+    statement += (statement ? '\n' : '') + 'Short Artist Biography: ' + info.artistBio;
+  }
+
+  sheet.appendRow([
+    info.name,
+    info.phone,
+    info.email,
+    info.uaeResident,
+    info.artworkTitle,
+    info.discipline,
+    info.mediumMaterial,
+    info.dimensions,
+    info.yearCompleted,
+    statement,
+    info.fileUrl || '',
+  ]);
 }
 
 function getOrCreateArtworkFolder() {
