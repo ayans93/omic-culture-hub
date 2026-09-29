@@ -307,6 +307,38 @@ function appendArtworkSubmissionToSheet_(info) {
   ]);
 }
 
+// One-time helper for authorizing this script and confirming the Art Prize
+// spreadsheet logging works end to end. Run THIS function (not
+// handleArtworkSubmission directly -- the editor's Run button calls a
+// function with no arguments, so handleArtworkSubmission(params) crashes
+// immediately trying to read params.timestamp off undefined; this wrapper
+// supplies fake params instead). Running it will prompt you to authorize
+// Gmail/Sheets access if you haven't already, then it sends one real test
+// email to NOTIFY_EMAIL and appends one real test row to the spreadsheet --
+// both clearly labelled "Authorization test", safe to delete afterward. It
+// deliberately leaves the artwork file fields empty, so it does not touch
+// Drive or create anything in the submissions folder.
+function test_handleArtworkSubmission() {
+  handleArtworkSubmission({
+    timestamp: new Date().toISOString(),
+    event: 'The OMIC Art Contest',
+    name: 'Authorization test -- delete me',
+    phone: '+971500000000',
+    email: 'test@example.com',
+    uaeResident: 'Yes',
+    artworkTitle: 'Authorization test',
+    discipline: 'Painting',
+    mediumMaterial: 'Test',
+    dimensions: '10x10cm',
+    yearCompleted: '2026',
+    artistStatement: 'One-off test run to authorize the script and confirm the spreadsheet logging works end to end.',
+    artistBio: 'Safe to delete this row and the matching test email.',
+    fileName: '',
+    fileMimeType: '',
+    fileData: '',
+  });
+}
+
 function getOrCreateArtworkFolder() {
   var folders = DriveApp.getFoldersByName(ARTWORK_DRIVE_FOLDER_NAME);
   if (folders.hasNext()) {

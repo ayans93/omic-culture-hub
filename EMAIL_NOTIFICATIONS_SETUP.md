@@ -102,28 +102,31 @@ Save the file. Restart `npm run dev` if it's already running.
   email existed, it won't send those yet either — the same "paste the
   current `Code.gs` in, then Deploy → Manage deployments → Edit → New
   version" step above applies here too.
-- The updated script saves uploaded artwork files to Google Drive, which
-  needs an extra permission scope beyond sending mail. The **first**
-  artwork submission after you redeploy will likely need you to
-  re-authorize the script (you may see a new consent screen, or the
-  submission may silently fail server-side until you do). To pre-authorize
-  it yourself: open the script in the Apps Script editor, select the
-  `handleArtworkSubmission` function from the function dropdown next to
-  "Debug", click **Run** once, and step through the consent screen when
-  prompted (choose your account → Advanced → Go to project (unsafe) →
-  Allow). After that, submissions from the site will work without further
-  prompts.
-- Logging to the spreadsheet needs one more scope on top of that (Google
-  Sheets access), so expect one more "Authorization required" consent
-  screen the first time — the same **Run** → **Allow** steps above,
-  triggered from the same `handleArtworkSubmission` test run, cover it.
-  It also needs the Google account the script runs as to have **edit**
-  access to the "Copy of Art Prize Entries" spreadsheet — if that account
-  isn't already an editor on the sheet, open the sheet's Share dialog and
-  add it before testing. If the account can't reach the sheet, the
-  submission and its email notification still go through as normal; the
-  row just silently won't be added (check the Apps Script project's
-  **Executions** log if a submission's row seems to be missing).
+- The updated script saves uploaded artwork files to Google Drive and logs
+  submissions to the Art Prize spreadsheet, both of which need extra
+  permission scopes beyond sending mail. The **first** artwork submission
+  after you redeploy will likely need you to re-authorize the script (you
+  may see a new consent screen, or the submission may silently fail
+  server-side until you do). To pre-authorize it yourself: open the script
+  in the Apps Script editor, select **`test_handleArtworkSubmission`** (not
+  `handleArtworkSubmission` itself — that one expects a params object that
+  the editor's Run button doesn't supply, so running it directly just
+  crashes with `Cannot read properties of undefined (reading 'timestamp')`;
+  that error is harmless but doesn't authorize anything) from the function
+  dropdown next to "Debug", click **Run** once, and step through the
+  consent screen when prompted (choose your account → Advanced → Go to
+  project (unsafe) → Allow). This test run sends one real email to
+  `NOTIFY_EMAIL` and appends one real row to the spreadsheet, both clearly
+  labelled "Authorization test" — check both landed correctly, then delete
+  that test email and test row. After that, real submissions from the site
+  will work without further prompts.
+- Logging to the spreadsheet also needs the Google account the script runs
+  as to have **edit** access to the "Copy of Art Prize Entries" spreadsheet
+  — if that account isn't already an editor on the sheet, open the sheet's
+  Share dialog and add it before testing. If the account can't reach the
+  sheet, the submission and its email notification still go through as
+  normal; the row just silently won't be added (check the Apps Script
+  project's **Executions** log if a submission's row seems to be missing).
 - The request is sent with `mode: 'no-cors'`, which is required for a
   browser to call an Apps Script Web App directly. This means the page
   can't read the response back, so it can't detect a failure on Google's
