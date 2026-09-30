@@ -384,6 +384,7 @@ function initArtworkForm() {
       error: document.getElementById('uaeResidentError'),
       validate(value) {
         if (!value) return 'Please select an option.';
+        if (value === 'No') return 'The content is only open to UAE residents.';
         return '';
       },
     },
