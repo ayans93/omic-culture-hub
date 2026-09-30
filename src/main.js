@@ -15,6 +15,14 @@ if (artworkForm) {
   initArtworkForm();
 }
 
+const newtonForm = document.getElementById('newtonForm');
+
+// Only the Newton show page has this dedicated registration form (its own
+// fixed +971 phone prefix, plus seat/waitlist capacity logic).
+if (newtonForm) {
+  initNewtonForm();
+}
+
 const artistModal = document.getElementById('artistModal');
 
 // Pages without a Featured Artists modal (e.g. Cafe, Shows) can
@@ -714,6 +722,211 @@ function initArtworkForm() {
     goToThankYou(eventName, 'submission');
   });
 } // end initArtworkForm
+
+// The Newton show page's registration form: name, a UAE phone number (shown
+// with a fixed +971 prefix chip — the visitor only types the local digits),
+// and email. Seats are capped (45 confirmed, then a 25-person waitlist), so
+// the page also checks current availability on load and swaps the form out
+// for a "registrations are full" notice if capacity's already been reached.
+function initNewtonForm() {
+  const formWrap = document.getElementById('newtonFormWrap');
+  const closedNotice = document.getElementById('newtonClosedNotice');
+  const submitButton = document.getElementById('newtonSubmit');
+
+  const eventName = document.body.dataset.eventName || document.title;
+  const eventDate = document.body.dataset.eventDate || '';
+  const eventTime = document.body.dataset.eventTime || '';
+  const eventVenue = document.body.dataset.eventVenue || '';
+  const eventBlurb = document.body.dataset.eventBlurb || '';
+
+  const LOCAL_PHONE_PATTERN = /^[0-9]{8,9}$/;
+
+  const fields = {
+    name: {
+      input: document.getElementById('newtonName'),
+      error: document.getElementById('newtonNameError'),
+      validate(value) {
+        const trimmed = value.trim();
+        if (!trimmed) return 'Please enter your name.';
+        if (trimmed.length < 2) return 'Name looks too short.';
+        if (!/^[A-Za-z][A-Za-z .'-]*$/.test(trimmed)) {
+          return 'Name can only contain letters, spaces, apostrophes and hyphens.';
+        }
+        return '';
+      },
+    },
+    phone: {
+      input: document.getElementById('newtonPhone'),
+      error: document.getElementById('newtonPhoneError'),
+      validate(value) {
+        // The +971 prefix is a fixed chip next to this field, not part of
+        // its value — so this only validates the local digits the visitor
+        // actually typed.
+        const normalized = value.trim().replace(/[\s()-]/g, '');
+        if (!normalized) return 'Please enter your phone number.';
+        if (!LOCAL_PHONE_PATTERN.test(normalized)) {
+          return 'Enter a valid UAE number, e.g. 5X XXX XXXX.';
+        }
+        return '';
+      },
+    },
+    email: {
+      input: document.getElementById('newtonEmail'),
+      error: document.getElementById('newtonEmailError'),
+      validate(value) {
+        const trimmed = value.trim();
+        if (!trimmed) return 'Please enter your email.';
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(trimmed)) return 'Enter a valid email address.';
+        return '';
+      },
+    },
+  };
+
+  function setFieldError(field, message) {
+    field.error.textContent = message;
+    if (message) {
+      field.error.classList.add('is-visible');
+      field.input.classList.add('is-invalid');
+    } else {
+      field.error.classList.remove('is-visible');
+      field.input.classList.remove('is-invalid');
+    }
+  }
+
+  function validateField(key) {
+    const field = fields[key];
+    const message = field.validate(field.input.value);
+    setFieldError(field, message);
+    return !message;
+  }
+
+  // Validate on blur for immediate feedback, and clear the error as the
+  // user retypes — same pattern as the other forms on this site.
+  Object.keys(fields).forEach((key) => {
+    const field = fields[key];
+    field.input.addEventListener('blur', () => validateField(key));
+    field.input.addEventListener('input', () => {
+      if (field.error.classList.contains('is-visible')) {
+        validateField(key);
+      }
+    });
+  });
+
+  function setSubmitting(isSubmitting) {
+    submitButton.disabled = isSubmitting;
+    submitButton.textContent = isSubmitting ? 'Registering…' : 'Register';
+  }
+
+  async function notifyByEmail(data) {
+    if (!REGISTRATION_NOTIFY_ENDPOINT || REGISTRATION_NOTIFY_ENDPOINT.includes('PASTE_YOUR')) {
+      console.warn(
+        'Registration notification endpoint is not configured yet — see ' +
+          'EMAIL_NOTIFICATIONS_SETUP.md. Skipping; no email was sent for this registration:',
+        data
+      );
+      return;
+    }
+
+    const body = new URLSearchParams({
+      formType: 'newtonRegistration',
+      timestamp: new Date().toISOString(),
+      event: eventName,
+      eventDate,
+      eventTime,
+      eventVenue,
+      eventBlurb,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+    });
+
+    // Same fire-and-forget pattern as the other forms on this site: Apps
+    // Script Web Apps can take several seconds, and the response is opaque
+    // either way (no-cors / sendBeacon), so there's nothing to gain by
+    // waiting for it here — see initRegisterForm's notifyByEmail for the
+    // full reasoning.
+    if (navigator.sendBeacon) {
+      try {
+        if (navigator.sendBeacon(REGISTRATION_NOTIFY_ENDPOINT, body)) return;
+      } catch (err) {
+        // Fall through to fetch below.
+      }
+    }
+
+    try {
+      await fetch(REGISTRATION_NOTIFY_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        body,
+      });
+    } catch (err) {
+      console.error('Could not reach the registration notification endpoint:', err);
+    }
+  }
+
+  // Best-effort "seats left" check on page load, using a JSONP-style
+  // <script> tag: Apps Script Web Apps don't send CORS headers, so an
+  // ordinary cross-origin fetch can't read the response, but loading a
+  // <script src="..."> tag isn't subject to CORS at all — the endpoint
+  // wraps its JSON in a call to this one-off callback instead. If this
+  // can't be reached for any reason (offline, ad blocker, endpoint not
+  // configured yet), we fail open and leave the form up; the Apps Script
+  // side still enforces the real 45+25 limit when it processes a
+  // submission, so nothing can actually overbook from this check failing.
+  function checkNewtonCapacity() {
+    if (!REGISTRATION_NOTIFY_ENDPOINT || REGISTRATION_NOTIFY_ENDPOINT.includes('PASTE_YOUR')) return;
+
+    const callbackName = '__newtonCapacity' + Date.now();
+    const script = document.createElement('script');
+
+    function cleanup() {
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (data) => {
+      if (data && data.closed) {
+        formWrap.hidden = true;
+        closedNotice.hidden = false;
+      }
+      cleanup();
+    };
+
+    script.onerror = cleanup;
+    script.src = REGISTRATION_NOTIFY_ENDPOINT + '?formType=newtonCapacity&callback=' + callbackName;
+    document.body.appendChild(script);
+  }
+
+  checkNewtonCapacity();
+
+  document.getElementById('newtonForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const results = Object.keys(fields).map((key) => validateField(key));
+    const allValid = results.every(Boolean);
+
+    if (!allValid) {
+      const firstInvalidKey = Object.keys(fields).find(
+        (key) => fields[key].input.classList.contains('is-invalid')
+      );
+      if (firstInvalidKey) {
+        fields[firstInvalidKey].input.focus();
+      }
+      return;
+    }
+
+    const data = {
+      name: fields.name.input.value.trim(),
+      phone: '+971' + fields.phone.input.value.trim().replace(/[\s()-]/g, ''),
+      email: fields.email.input.value.trim(),
+    };
+
+    setSubmitting(true);
+    await notifyByEmail(data);
+    goToThankYou(eventName, 'registration');
+  });
+} // end initNewtonForm
 
 function initArtistModal() {
   const modalPhoto = document.getElementById('artistModalPhoto');

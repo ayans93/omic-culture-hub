@@ -43,6 +43,13 @@ is ever moved, renamed, or copied — and if a column is ever added, removed,
 or reordered on the sheet, `appendArtworkSubmissionToSheet_` needs its
 column order updated to match.
 
+Newton's registration form works a little differently, since seats are
+limited: it emails the team the same way, then hands the registrant a real
+confirmation or waitlist number ("CNF 1" through "CNF 45", then "WL 1"
+through "WL 25"), a booking code, and a QR code for check-in, generated and
+sent as part of the same email. See "Newton's registrations" below for the
+full details.
+
 On top of that team notification, the simple registration form also emails
 **the person who just registered** a "You're registered" confirmation —
 their name, plus the event's date/time/venue when the page provides them
@@ -86,6 +93,48 @@ Save the file. Restart `npm run dev` if it's already running.
    `gallery@omic.spot`'s inbox within a few seconds (check spam the first time).
 3. The email address you registered with should also get its own "You're
    registered" confirmation within the same few seconds.
+
+## Newton's registrations
+
+Newton has 45 confirmed seats and a 25-person waitlist (70 total), after
+which registrations close automatically. Each submission is logged as a new
+row in the "Newton Show Registrations" spreadsheet:
+https://docs.google.com/spreadsheets/d/1F6b2quflVCcglnJbVw4ZynmxL1u8Lt9O-h3y4d97Y1o
+
+- **Name, Phone number, Email, Registration timestamp, Status** are the
+  sheet's existing columns. "Status" is "CNF 1" through "CNF 45" for
+  confirmed seats, then "WL 1" through "WL 25" for the waitlist.
+- **Booking Code** is a 6th column this integration adds (an 8-character
+  code like `68NF-O8R3`). If it isn't already the header in column F, add it
+  yourself — the script doesn't create sheet columns, only rows.
+- The seat/waitlist number is assigned atomically (using Apps Script's
+  `LockService`), so two people registering at the same instant can't be
+  handed the same number.
+- The registrant's confirmation email includes their status, booking code,
+  and a QR code (of the booking code) generated via a free, key-less QR API
+  (api.qrserver.com) — no API key or extra setup needed, just outbound
+  internet access from the script, which Apps Script has by default.
+- Once all 70 spots are taken, the Newton page itself checks remaining
+  capacity when it loads and swaps the registration form for a "registrations
+  are full" notice — but that's a best-effort UI convenience (it can't catch
+  the exact instant capacity runs out, since the actual submission is a
+  fire-and-forget request the page can't get a response back from, same as
+  every other form on this site — see the `no-cors` note further down). Any
+  submission that still slips through after 70 is logged to the sheet as
+  "Closed - Not Accepted" (not given a real status or booking code) and gets
+  a polite "we're full" email instead of a confirmation, so nothing is ever
+  overbooked.
+- Like the Art Contest's artwork submissions, the account this script runs
+  as needs **edit access** to the Newton spreadsheet — this has already been
+  granted.
+- The account also needs permission to make outbound requests (for the QR
+  code) the first time this runs. Use the same authorization helper pattern
+  as the Art Contest: run **`test_handleNewtonRegistration`** (not
+  `handleNewtonRegistration` directly) from the function dropdown next to
+  "Debug", click **Run**, and step through the consent screen if prompted.
+  This sends one real test email and appends one real test row, both
+  clearly labelled "Authorization test" — check the email (including the QR
+  image) and the row landed correctly, then delete both.
 
 ## Notes
 

@@ -14,6 +14,7 @@ export default defineConfig({
         nothingUnusual: resolve(__dirname, 'nothing-unusual.html'),
         artCompetition: resolve(__dirname, 'art-competition.html'),
         videoArtTalk: resolve(__dirname, 'video-art-talk.html'),
+        newton: resolve(__dirname, 'newton.html'),
         cafe: resolve(__dirname, 'cafe.html'),
         shows: resolve(__dirname, 'shows.html'),
         thankYou: resolve(__dirname, 'thank-you.html'),
