@@ -394,6 +394,84 @@ a {
   margin-bottom: 20px;
 }
 
+/* Poster/trailer carousel (e.g. Newton's page): two absolutely-positioned
+   layers cross-fade in and out, driven by initPosterCarousel in
+   src/main.js. The container keeps the poster's own portrait aspect ratio
+   so nothing shifts when the trailer frame (a 16:9 YouTube thumbnail)
+   swaps in -- that frame uses object-fit: contain instead of cover so the
+   whole thumbnail stays visible, letterboxed, rather than being cropped
+   to a portrait sliver. */
+.poster-carousel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  border: 1px solid var(--cream-line);
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: #15130f;
+}
+
+.poster-carousel__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.poster-carousel__layer.is-visible {
+  opacity: 1;
+}
+
+.poster-carousel__poster {
+  object-fit: cover;
+}
+
+.poster-carousel__trailer {
+  background: #15130f;
+}
+
+.poster-carousel__trailer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.poster-carousel__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.poster-carousel__trailer-label {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .tag-row {
   display: flex;
   flex-wrap: wrap;

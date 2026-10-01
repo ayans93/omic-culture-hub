@@ -6,7 +6,20 @@
  * Setup instructions: see EMAIL_NOTIFICATIONS_SETUP.md in the project root.
  */
 
+// Team notification address for every event EXCEPT Newton (the general
+// registration form, and Art Contest submissions). Newton has its own
+// address below -- see NEWTON_NOTIFY_EMAIL.
 var NOTIFY_EMAIL = 'gallery@omic.spot';
+
+// Team notification address specifically for Newton registrations (used in
+// handleNewtonRegistration below). Every other event on the site keeps
+// using NOTIFY_EMAIL above.
+var NEWTON_NOTIFY_EMAIL = 'cinema@omic.spot';
+
+// Address the one-off test_* helpers at the bottom of this file send their
+// simulated registrant/submitter email to, so test runs don't land in a
+// real visitor's inbox or in one of the team addresses above.
+var TEST_RECIPIENT_EMAIL = 'ayan@dviu.in';
 
 // Display name the registrant-facing confirmation emails are sent under.
 // The email still goes out through whichever Google account authorized
@@ -416,7 +429,7 @@ function handleNewtonRegistration(params) {
     'Submitted: ' + timestamp,
   ].join('\n');
 
-  MailApp.sendEmail(NOTIFY_EMAIL, subject, body);
+  MailApp.sendEmail(NEWTON_NOTIFY_EMAIL, subject, body);
 
   // 2. Confirm (or apologize) to the person who just registered. Best-effort,
   // same reasoning as sendRegistrantConfirmation_ above.
@@ -706,16 +719,17 @@ function handleNewtonCapacityCheck_(params) {
 // (and, the first time, its external-request access for the QR code API --
 // see fetchNewtonQrBlob_). Run THIS function (not handleNewtonRegistration
 // directly -- same reasoning as test_handleArtworkSubmission below). Sends
-// one real test email to NOTIFY_EMAIL and to the fake registrant address
-// below, and appends one real test row to the Newton sheet, all clearly
-// labelled "Authorization test" -- check they landed correctly (including
-// the QR image), then delete that test row and both test emails.
+// one real test email to NEWTON_NOTIFY_EMAIL (the Newton team address) and
+// one to TEST_RECIPIENT_EMAIL (standing in for the registrant), and appends
+// one real test row to the Newton sheet, all clearly labelled "Authorization
+// test" -- check they landed correctly (including the QR image), then
+// delete that test row and both test emails.
 function test_handleNewtonRegistration() {
   handleNewtonRegistration({
     timestamp: new Date().toISOString(),
     name: 'Authorization test -- delete me',
     phone: '+971500000000',
-    email: NOTIFY_EMAIL,
+    email: TEST_RECIPIENT_EMAIL,
     guestCount: '1',
   });
 }
@@ -730,7 +744,7 @@ function test_handleNewtonRegistrationTwoGuests() {
     timestamp: new Date().toISOString(),
     name: 'Authorization test (2 guests) -- delete me',
     phone: '+971500000000',
-    email: NOTIFY_EMAIL,
+    email: TEST_RECIPIENT_EMAIL,
     guestCount: '2',
   });
 }
@@ -742,17 +756,19 @@ function test_handleNewtonRegistrationTwoGuests() {
 // immediately trying to read params.timestamp off undefined; this wrapper
 // supplies fake params instead). Running it will prompt you to authorize
 // Gmail/Sheets access if you haven't already, then it sends one real test
-// email to NOTIFY_EMAIL and appends one real test row to the spreadsheet --
-// both clearly labelled "Authorization test", safe to delete afterward. It
-// deliberately leaves the artwork file fields empty, so it does not touch
-// Drive or create anything in the submissions folder.
+// email to NOTIFY_EMAIL (the Art Contest's team address) and one to
+// TEST_RECIPIENT_EMAIL (standing in for the submitter), and appends one real
+// test row to the spreadsheet -- both clearly labelled "Authorization test",
+// safe to delete afterward. It deliberately leaves the artwork file fields
+// empty, so it does not touch Drive or create anything in the submissions
+// folder.
 function test_handleArtworkSubmission() {
   handleArtworkSubmission({
     timestamp: new Date().toISOString(),
     event: 'The OMIC Art Contest',
     name: 'Authorization test -- delete me',
     phone: '+971500000000',
-    email: 'test@example.com',
+    email: TEST_RECIPIENT_EMAIL,
     uaeResident: 'Yes',
     artworkTitle: 'Authorization test',
     discipline: 'Painting',

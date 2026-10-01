@@ -18,9 +18,17 @@ if (artworkForm) {
 const newtonForm = document.getElementById('newtonForm');
 
 // Only the Newton show page has this dedicated registration form (its own
-// fixed +971 phone prefix, plus seat/waitlist capacity logic).
+// UAE/India phone country select, guest-count picker, and seat/waitlist
+// capacity logic).
 if (newtonForm) {
   initNewtonForm();
+}
+
+const newtonPosterCarousel = document.getElementById('newtonPosterCarousel');
+
+// Only the Newton show page has the poster/trailer carousel.
+if (newtonPosterCarousel) {
+  initPosterCarousel(newtonPosterCarousel);
 }
 
 const artistModal = document.getElementById('artistModal');
@@ -980,6 +988,37 @@ function initNewtonForm() {
     goToThankYou(eventName, 'registration');
   });
 } // end initNewtonForm
+
+// Cross-fades between the poster image and a YouTube trailer thumbnail:
+// poster visible for 2s, then the trailer frame for 5s, looping forever.
+// Takes the carousel's root element so a page can wire up more than one of
+// these if it ever needs to. Clicking the trailer frame opens the trailer
+// on YouTube in a new tab (it's a real <a>, so this works even if the JS
+// below never runs); clicking the poster frame does nothing special.
+function initPosterCarousel(root) {
+  const layers = Array.from(root.querySelectorAll('.poster-carousel__layer'));
+  if (layers.length < 2) return;
+
+  // Respect reduced-motion: leave whichever frame is already marked
+  // visible in the HTML (the poster) showing, and don't auto-rotate.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
+  const DURATIONS = [2000, 5000]; // poster, then trailer
+  let activeIndex = layers.findIndex((layer) => layer.classList.contains('is-visible'));
+  if (activeIndex === -1) activeIndex = 0;
+
+  function showNext() {
+    const nextIndex = (activeIndex + 1) % layers.length;
+    layers[activeIndex].classList.remove('is-visible');
+    layers[nextIndex].classList.add('is-visible');
+    activeIndex = nextIndex;
+    setTimeout(showNext, DURATIONS[activeIndex]);
+  }
+
+  setTimeout(showNext, DURATIONS[activeIndex]);
+}
 
 function initArtistModal() {
   const modalPhoto = document.getElementById('artistModalPhoto');

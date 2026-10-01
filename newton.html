@@ -60,7 +60,32 @@
     <section class="content content--top">
       <div class="eyebrow-badge"><span class="dot dot--blue"></span>Upcoming Screening</div>
 
-      <img class="poster" src="/posters/newton.jpg" alt="OMICinema presents Newton, directed by Amit V. Masurkar, produced by Manish Mundra. Screening followed by a Q&amp;A with Amit Masurkar, Pankaj Tripathi, and Manish Mundra. Official Selection, 67th Berlin International Film Festival, Forum." />
+      <div class="poster-carousel" id="newtonPosterCarousel">
+        <img
+          class="poster-carousel__layer poster-carousel__poster is-visible"
+          src="/posters/newton.jpg"
+          alt="OMICinema presents Newton, directed by Amit V. Masurkar, produced by Manish Mundra. Screening followed by a Q&amp;A with Amit Masurkar, Pankaj Tripathi, and Manish Mundra. Official Selection, 67th Berlin International Film Festival, Forum."
+          data-carousel-frame="poster"
+        />
+        <a
+          class="poster-carousel__layer poster-carousel__trailer"
+          href="https://www.youtube.com/watch?v=yU6zMPFd4UU"
+          target="_blank"
+          rel="noopener"
+          aria-label="Watch the Newton trailer on YouTube (opens in a new tab)"
+          data-carousel-frame="trailer"
+        >
+          <img
+            src="https://img.youtube.com/vi/yU6zMPFd4UU/maxresdefault.jpg"
+            alt=""
+            onerror="this.onerror=null;this.src='https://img.youtube.com/vi/yU6zMPFd4UU/hqdefault.jpg';"
+          />
+          <span class="poster-carousel__play" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+          <span class="poster-carousel__trailer-label">Watch Trailer</span>
+        </a>
+      </div>
     </section>
 
     <aside class="sidebar" id="register">
