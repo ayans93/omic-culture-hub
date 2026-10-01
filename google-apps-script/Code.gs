@@ -18,8 +18,26 @@ var NEWTON_NOTIFY_EMAIL = 'cinema@omic.spot';
 
 // Address the one-off test_* helpers at the bottom of this file send their
 // simulated registrant/submitter email to, so test runs don't land in a
-// real visitor's inbox or in one of the team addresses above.
+// real visitor's inbox or in one of the team addresses above. Also where
+// every form's team notification gets redirected when the submission came
+// from the staging site -- see isStagingRequest_ below.
 var TEST_RECIPIENT_EMAIL = 'ayan@dviu.in';
+
+// The staging deployment (omic-hub.vercel.app, or any other Vercel preview
+// URL) and the real production site (omic.spot) both point at this exact
+// same Web App -- there's only one Apps Script project, one spreadsheet,
+// and one set of team addresses behind both. Without this check, testing a
+// registration on staging would notify the real team inboxes exactly like
+// a real submission on omic.spot would. src/main.js sends which site a
+// submission came from as `origin` ('staging' or 'production') on every
+// form; this is what each handler below checks before deciding whether its
+// team notification goes to the real team address or to
+// TEST_RECIPIENT_EMAIL instead. It only affects the TEAM notification --
+// the registrant's own confirmation email always goes to the address they
+// typed into the form, regardless of which site they used.
+function isStagingRequest_(params) {
+  return !!(params && params.origin === 'staging');
+}
 
 // Display name the registrant-facing confirmation emails are sent under.
 // The email still goes out through whichever Google account authorized
@@ -81,9 +99,14 @@ function handleRegistration(params) {
   var name = params.name || '';
   var phone = params.phone || '';
   var email = params.email || '';
+  var staging = isStagingRequest_(params);
 
-  // 1. Notify the team, same as before.
-  var subject = 'New registration: ' + eventName;
+  // 1. Notify the team, same as before -- unless this came from the
+  // staging site, in which case redirect it to TEST_RECIPIENT_EMAIL (see
+  // isStagingRequest_) so testing on staging doesn't land in the real
+  // team inbox.
+  var teamEmail = staging ? TEST_RECIPIENT_EMAIL : NOTIFY_EMAIL;
+  var subject = (staging ? '[STAGING] ' : '') + 'New registration: ' + eventName;
   var body = [
     'A new registration was just submitted on the event landing page.',
     '',
@@ -94,7 +117,7 @@ function handleRegistration(params) {
     'Submitted: ' + timestamp,
   ].join('\n');
 
-  MailApp.sendEmail(NOTIFY_EMAIL, subject, body);
+  MailApp.sendEmail(teamEmail, subject, body);
 
   // 2. Confirm the registration to the person who just signed up. This is
   // best-effort: if it fails for any reason (e.g. a malformed address that
@@ -251,7 +274,9 @@ function handleArtworkSubmission(params) {
     }
   }
 
-  var subject = 'New Art Contest submission: ' + artworkTitle;
+  var staging = isStagingRequest_(params);
+  var teamEmail = staging ? TEST_RECIPIENT_EMAIL : NOTIFY_EMAIL;
+  var subject = (staging ? '[STAGING] ' : '') + 'New Art Contest submission: ' + artworkTitle;
   var body = [
     'A new artwork was just submitted on the Art Contest page.',
     '',
@@ -271,7 +296,7 @@ function handleArtworkSubmission(params) {
     'Submitted: ' + timestamp,
   ].join('\n');
 
-  MailApp.sendEmail(NOTIFY_EMAIL, subject, body);
+  MailApp.sendEmail(teamEmail, subject, body);
 
   // Log the entry to the tracking spreadsheet, the same way it's been
   // transcribed by hand from these emails so far. Best-effort: if the sheet
@@ -410,11 +435,16 @@ function handleNewtonRegistration(params) {
     }
   }
 
-  // 1. Notify the team, same pattern as the other form handlers.
+  // 1. Notify the team, same pattern as the other form handlers -- unless
+  // this came from the staging site, in which case redirect it to
+  // TEST_RECIPIENT_EMAIL (see isStagingRequest_) instead of the real
+  // Newton team address.
+  var staging = isStagingRequest_(params);
+  var teamEmail = staging ? TEST_RECIPIENT_EMAIL : NEWTON_NOTIFY_EMAIL;
   var statusSummary = allocations.length
     ? allocations.map(function (a) { return a.status; }).join(', ')
     : 'CLOSED (already full)';
-  var subject = 'New Newton registration (' + guestCount + (guestCount === 1 ? ' guest' : ' guests') + '): ' + statusSummary;
+  var subject = (staging ? '[STAGING] ' : '') + 'New Newton registration (' + guestCount + (guestCount === 1 ? ' guest' : ' guests') + '): ' + statusSummary;
   var body = [
     'A new registration was just submitted on the Newton page.',
     '',
@@ -429,7 +459,7 @@ function handleNewtonRegistration(params) {
     'Submitted: ' + timestamp,
   ].join('\n');
 
-  MailApp.sendEmail(NEWTON_NOTIFY_EMAIL, subject, body);
+  MailApp.sendEmail(teamEmail, subject, body);
 
   // 2. Confirm (or apologize) to the person who just registered. Best-effort,
   // same reasoning as sendRegistrantConfirmation_ above.

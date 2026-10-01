@@ -1,5 +1,17 @@
 import { REGISTRATION_NOTIFY_ENDPOINT } from './config.js';
 
+// The staging deployment (omic-hub.vercel.app, and any other Vercel preview
+// URL) and the real production site (omic.spot) currently share the exact
+// same Apps Script backend, spreadsheet, and inbox-routing logic. Without
+// this, every form submitted while testing on staging would notify the
+// real team addresses (gallery@omic.spot / cinema@omic.spot) exactly like a
+// real submission would. Sending this along lets the backend redirect its
+// team notification to a test address instead when it's not production —
+// see isStagingRequest_ in google-apps-script/Code.gs. It's sent as an
+// ordinary form field rather than inferred server-side from anything else,
+// since Apps Script has no reliable way to see the page's origin on its own.
+const SITE_ORIGIN = window.location.hostname.endsWith('.vercel.app') ? 'staging' : 'production';
+
 const form = document.getElementById('registerForm');
 
 // Pages without a registration form (e.g. the Shows page, or a concluded
@@ -259,6 +271,7 @@ async function notifyByEmail(data) {
   }
 
   const body = new URLSearchParams({
+    origin: SITE_ORIGIN,
     timestamp: new Date().toISOString(),
     event: eventName,
     eventDate,
@@ -654,6 +667,7 @@ function initArtworkForm() {
 
     const body = new URLSearchParams({
       formType: 'artwork',
+      origin: SITE_ORIGIN,
       timestamp: new Date().toISOString(),
       event: eventName,
       name: data.artistName,
@@ -873,6 +887,7 @@ function initNewtonForm() {
 
     const body = new URLSearchParams({
       formType: 'newtonRegistration',
+      origin: SITE_ORIGIN,
       timestamp: new Date().toISOString(),
       event: eventName,
       eventDate,
