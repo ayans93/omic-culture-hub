@@ -37,6 +37,12 @@ var NEWTON_SHEET_TAB_NAME = 'Sheet1';
 var NEWTON_CONFIRMED_SEATS = 45;
 var NEWTON_WAITLIST_SEATS = 25;
 
+// A single booking can reserve at most this many seats. The form only ever
+// sends 1 or 2 (see the "Number of Guests" radio bubbles in newton.html /
+// src/main.js), but this is clamped server-side too so a malformed or
+// tampered request can't request more.
+var NEWTON_MAX_GUESTS_PER_BOOKING = 2;
+
 function doPost(e) {
   var params = (e && e.parameter) || {};
   var formType = params.formType || 'registration';
@@ -327,34 +333,55 @@ function appendArtworkSubmissionToSheet_(info) {
   ]);
 }
 
-// Newton's registration form: name, phone, email. Seats are limited (45
-// confirmed, then a 25-person waitlist), so this atomically hands out the
-// next confirmation/waitlist number, generates a booking code + QR code,
-// emails the registrant their confirmation (or a "we're full" note once
-// capacity's gone), and logs the row to the tracking spreadsheet.
+// Newton's registration form: name, phone, email, and a guest count of 1 or
+// 2. Seats are limited (45 confirmed, then a 25-person waitlist), so this
+// atomically hands out the next 1 or 2 confirmation/waitlist numbers (the
+// whole party at once -- see allocateNewtonSeats_), generates one booking
+// code + QR code per seat, emails the registrant a single confirmation with
+// every seat's code/QR (or a "we're full" note if the whole party doesn't
+// fit), and logs one row per seat to the tracking spreadsheet.
 function handleNewtonRegistration(params) {
   var timestamp = params.timestamp || new Date().toISOString();
   var name = params.name || '';
   var phone = params.phone || '';
   var email = params.email || '';
 
-  // LockService serializes concurrent submissions so two people landing at
-  // the same instant can't both be handed the same confirmation number —
+  var guestCount = parseInt(params.guestCount, 10);
+  if (!guestCount || guestCount < 1) guestCount = 1;
+  if (guestCount > NEWTON_MAX_GUESTS_PER_BOOKING) guestCount = NEWTON_MAX_GUESTS_PER_BOOKING;
+
+  // LockService serializes concurrent submissions so two parties landing at
+  // the same instant can't both be handed the same confirmation number --
   // each caller waits its turn before reading/incrementing the seat count.
   var lock = LockService.getScriptLock();
-  var allocation = { status: null, bookingCode: '' };
+  var allocations = [];
   try {
     lock.waitLock(30000);
-    allocation = allocateNewtonSeat_();
+    allocations = allocateNewtonSeats_(guestCount);
     try {
-      appendNewtonRegistrationToSheet_({
-        name: name,
-        phone: phone,
-        email: email,
-        timestamp: timestamp,
-        status: allocation.status || 'Closed - Not Accepted',
-        bookingCode: allocation.bookingCode,
-      });
+      if (allocations.length) {
+        allocations.forEach(function (allocation) {
+          appendNewtonRegistrationToSheet_({
+            name: name,
+            phone: phone,
+            email: email,
+            timestamp: timestamp,
+            guests: guestCount,
+            status: allocation.status,
+            bookingCode: allocation.bookingCode,
+          });
+        });
+      } else {
+        appendNewtonRegistrationToSheet_({
+          name: name,
+          phone: phone,
+          email: email,
+          timestamp: timestamp,
+          guests: guestCount,
+          status: 'Closed - Not Accepted',
+          bookingCode: '',
+        });
+      }
     } catch (err) {
       // Best-effort, same as the Art Prize sheet logging -- see comment
       // there. Logged so it's visible in Executions if rows go missing.
@@ -371,15 +398,21 @@ function handleNewtonRegistration(params) {
   }
 
   // 1. Notify the team, same pattern as the other form handlers.
-  var subject = 'New Newton registration: ' + (allocation.status || 'CLOSED (already full)');
+  var statusSummary = allocations.length
+    ? allocations.map(function (a) { return a.status; }).join(', ')
+    : 'CLOSED (already full)';
+  var subject = 'New Newton registration (' + guestCount + (guestCount === 1 ? ' guest' : ' guests') + '): ' + statusSummary;
   var body = [
     'A new registration was just submitted on the Newton page.',
     '',
     'Name: ' + name,
     'Phone: ' + phone,
     'Email: ' + email,
-    'Status: ' + (allocation.status || 'Registrations were already full when this arrived -- logged for reference only, no confirmation email sent.'),
-    'Booking code: ' + (allocation.bookingCode || '(none)'),
+    'Guests: ' + guestCount,
+    'Status: ' + (allocations.length
+      ? statusSummary
+      : 'Registrations were already full when this arrived -- logged for reference only, no confirmation email sent.'),
+    'Booking code(s): ' + (allocations.length ? allocations.map(function (a) { return a.bookingCode; }).join(', ') : '(none)'),
     'Submitted: ' + timestamp,
   ].join('\n');
 
@@ -389,12 +422,11 @@ function handleNewtonRegistration(params) {
   // same reasoning as sendRegistrantConfirmation_ above.
   if (email) {
     try {
-      if (allocation.status) {
+      if (allocations.length) {
         sendNewtonConfirmation_({
           email: email,
           name: name,
-          status: allocation.status,
-          bookingCode: allocation.bookingCode,
+          allocations: allocations,
         });
       } else {
         sendNewtonClosedNotice_({ email: email, name: name });
@@ -410,28 +442,35 @@ function handleNewtonRegistration(params) {
 }
 
 // Reads the current row count from the Newton sheet and hands out the next
-// seat: "CNF 1".."CNF 45", then "WL 1".."WL 25", then closed (status: null)
-// once both are full. Counting existing rows (rather than keeping a
+// `guestCount` seats as one all-or-nothing block: "CNF 1".."CNF 45", then
+// "WL 1".."WL 25", then closed once both are full. A party is never split
+// across "fits" and "doesn't fit" -- if there isn't room for every seat the
+// party asked for, none are allocated (empty array back) and the whole
+// booking is treated as closed, same as handleNewtonRegistration's single-
+// seat behaviour before this. Counting existing rows (rather than keeping a
 // separate counter cell) means the sheet itself is always the source of
 // truth -- and since rows keep accumulating even after capacity is reached
 // (see handleNewtonRegistration, which still logs a "Closed - Not Accepted"
 // row), the count only ever grows, so once this starts returning closed it
 // stays closed. Must be called while holding the script lock.
-function allocateNewtonSeat_() {
+function allocateNewtonSeats_(guestCount) {
   var sheet = SpreadsheetApp.openById(NEWTON_SHEET_ID).getSheetByName(NEWTON_SHEET_TAB_NAME);
   var currentCount = sheet ? Math.max(0, sheet.getLastRow() - 1) : 0;
-  var seatNumber = currentCount + 1;
   var totalCapacity = NEWTON_CONFIRMED_SEATS + NEWTON_WAITLIST_SEATS;
 
-  if (seatNumber > totalCapacity) {
-    return { status: null, bookingCode: '', seatNumber: seatNumber };
+  if (currentCount + guestCount > totalCapacity) {
+    return [];
   }
 
-  var status = seatNumber <= NEWTON_CONFIRMED_SEATS
-    ? 'CNF ' + seatNumber
-    : 'WL ' + (seatNumber - NEWTON_CONFIRMED_SEATS);
-
-  return { status: status, bookingCode: generateNewtonBookingCode_(), seatNumber: seatNumber };
+  var allocations = [];
+  for (var i = 0; i < guestCount; i++) {
+    var seatNumber = currentCount + 1 + i;
+    var status = seatNumber <= NEWTON_CONFIRMED_SEATS
+      ? 'CNF ' + seatNumber
+      : 'WL ' + (seatNumber - NEWTON_CONFIRMED_SEATS);
+    allocations.push({ status: status, bookingCode: generateNewtonBookingCode_(), seatNumber: seatNumber });
+  }
+  return allocations;
 }
 
 // 8-character alphanumeric booking code formatted like "68NF-O8R3".
@@ -447,61 +486,86 @@ function generateNewtonBookingCode_() {
   return randomPart(4) + '-' + randomPart(4);
 }
 
-// Fetches a QR code PNG for the booking code from a free, key-less QR API,
+// Fetches a QR code PNG for a booking code from a free, key-less QR API,
 // for embedding in the confirmation email. Returns null (rather than
 // throwing) on any failure, since a missing QR image shouldn't block the
 // email itself from sending -- the booking code in the email text still
-// works as a fallback reference.
-function fetchNewtonQrBlob_(bookingCode) {
+// works as a fallback reference. `index` keeps each seat's blob filename
+// distinct when a single booking sends more than one.
+function fetchNewtonQrBlob_(bookingCode, index) {
   try {
     var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(bookingCode);
     var response = UrlFetchApp.fetch(qrUrl, { muteHttpExceptions: true });
     if (response.getResponseCode() !== 200) return null;
-    return response.getBlob().setName('newton-booking-qr.png');
+    return response.getBlob().setName('newton-booking-qr-' + (index || 0) + '.png');
   } catch (err) {
     Logger.log('fetchNewtonQrBlob_ failed: ' + err);
     return null;
   }
 }
 
+// Sends one confirmation email covering every seat in the booking (1 or 2).
+// `info.allocations` is the array allocateNewtonSeats_ returned: each entry
+// gets its own QR code, inlined as cid "newtonQr0", "newtonQr1", etc.
 function sendNewtonConfirmation_(info) {
   var firstName = (info.name || '').trim().split(/\s+/)[0] || 'there';
-  var isWaitlist = info.status.indexOf('WL') === 0;
-  var qrBlob = fetchNewtonQrBlob_(info.bookingCode);
+  var allocations = info.allocations;
+  var seatCount = allocations.length;
+  var confirmedCount = allocations.filter(function (a) { return a.status.indexOf('CNF') === 0; }).length;
+  var waitlistCount = seatCount - confirmedCount;
+  var allWaitlist = confirmedCount === 0;
+  var allConfirmed = waitlistCount === 0;
+
+  var inlineImages = {};
+  var qrBlobs = allocations.map(function (allocation, index) {
+    var blob = fetchNewtonQrBlob_(allocation.bookingCode, index);
+    if (blob) inlineImages['newtonQr' + index] = blob;
+    return blob;
+  });
+
+  var headline = allConfirmed
+    ? "You're confirmed"
+    : allWaitlist
+      ? "You're on the waitlist"
+      : "You're partly confirmed";
 
   var textLines = [
     'Hi ' + firstName + ',',
     '',
-    isWaitlist
-      ? "You're on the waitlist (" + info.status + ') for Newton.'
-      : "You're confirmed (" + info.status + ') for Newton.',
+    headline + ' for Newton' + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + '.',
     '',
-    'Booking code: ' + info.bookingCode,
-    '',
-    isWaitlist
-      ? "We'll reach out if a confirmed seat opens up before the screening."
-      : 'Please keep this code (and the attached QR code) handy -- show it at check-in.',
-    '',
-    'Newton screens Saturday, October 10, 2026 at 6:00 PM at OMIC Cultural Hub, followed by a Q&A with director Amit Masurkar, actor Pankaj Tripathi, and producer Manish Mundra.',
-    '',
-    '— OMIC Cultural Hub',
   ];
+  allocations.forEach(function (allocation, index) {
+    textLines.push('Seat ' + (index + 1) + ' -- Status: ' + allocation.status + ', Booking code: ' + allocation.bookingCode);
+  });
+  textLines.push(
+    '',
+    allConfirmed
+      ? 'Please keep these codes (and the attached QR codes) handy -- show them at check-in.'
+      : allWaitlist
+        ? "We'll reach out if confirmed seats open up before the screening."
+        : "The confirmed seat(s) above are set -- we'll reach out if the waitlisted seat(s) open up before the screening.",
+    '',
+    'Newton screens Saturday, October 10, 2026 at 6:00 PM at OMIC Cultural Hub, followed by a Q&A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi Sawhney.',
+    '',
+    '— OMIC Cultural Hub'
+  );
 
   var mailOptions = {
     to: info.email,
-    subject: isWaitlist ? "You're on the waitlist: Newton" : "You're confirmed: Newton",
+    subject: allConfirmed ? "You're confirmed: Newton" : allWaitlist ? "You're on the waitlist: Newton" : "Your Newton booking",
     body: textLines.join('\n'),
-    htmlBody: buildNewtonConfirmationHtml_(info, firstName, isWaitlist, !!qrBlob),
+    htmlBody: buildNewtonConfirmationHtml_(info, firstName, allocations, qrBlobs),
     name: SENDER_NAME,
   };
-  if (qrBlob) {
-    mailOptions.inlineImages = { newtonQr: qrBlob };
+  if (Object.keys(inlineImages).length) {
+    mailOptions.inlineImages = inlineImages;
   }
 
   MailApp.sendEmail(mailOptions);
 }
 
-function buildNewtonConfirmationHtml_(info, firstName, isWaitlist, hasQr) {
+function buildNewtonConfirmationHtml_(info, firstName, allocations, qrBlobs) {
   var escape = function (value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -509,40 +573,53 @@ function buildNewtonConfirmationHtml_(info, firstName, isWaitlist, hasQr) {
       .replace(/>/g, '&gt;');
   };
 
-  var qrImg = hasQr
-    ? '<img src="cid:newtonQr" width="180" height="180" alt="Booking QR code" style="display:block;margin:16px auto 0;border-radius:8px;" />'
+  var seatCount = allocations.length;
+  var confirmedCount = allocations.filter(function (a) { return a.status.indexOf('CNF') === 0; }).length;
+  var allWaitlist = confirmedCount === 0;
+  var allConfirmed = confirmedCount === seatCount;
+
+  var introText = allConfirmed
+    ? "You're booked in for <strong>Newton</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + " — a screening followed by a Q&amp;A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi Sawhney."
+    : allWaitlist
+      ? "You've been added to the waitlist for <strong>Newton</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + ". We'll reach out if confirmed seats open up before the screening."
+      : "Part of your booking for <strong>Newton</strong> is confirmed, and part is on the waitlist — see the breakdown below.";
+
+  var checkInNote = allConfirmed
+    ? '<p style="margin:0 0 16px;color:#8a8378;font-size:13px;line-height:1.6;">Please keep these codes (and the QR codes below) handy — show them at check-in.</p>'
     : '';
 
-  var introText = isWaitlist
-    ? "You've been added to the waitlist for <strong>Newton</strong>. We'll reach out if a confirmed seat opens up before the screening."
-    : "You're booked in for <strong>Newton</strong> — a screening followed by a Q&amp;A with director Amit Masurkar, actor Pankaj Tripathi, and producer Manish Mundra.";
+  var seatRows = allocations.map(function (allocation, index) {
+    return (
+      '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Seat ' + (index + 1) + '</td>' +
+        '<td style="padding:4px 0;color:#17140f;font-size:14px;font-weight:700;">' + escape(allocation.status) +
+        ' <span style="color:#8a8378;font-weight:400;letter-spacing:0.04em;">(' + escape(allocation.bookingCode) + ')</span></td></tr>'
+    );
+  }).join('');
 
-  var checkInNote = isWaitlist
-    ? ''
-    : '<p style="margin:0;color:#8a8378;font-size:13px;line-height:1.6;">Please keep this code (and the QR below) handy — show it at check-in.</p>';
+  var qrBlock = qrBlobs.map(function (blob, index) {
+    if (!blob) return '';
+    return '<img src="cid:newtonQr' + index + '" width="160" height="160" alt="Booking QR code ' + (index + 1) + '" style="display:inline-block;margin:8px;border-radius:8px;" />';
+  }).join('');
 
   return (
     '<div style="background:#f4ede1;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;">' +
       '<div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e6dcc9;border-radius:16px;padding:32px;">' +
         '<p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#4a6fe8;">OMIC Cultural Hub</p>' +
         '<h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:#17140f;">' +
-          (isWaitlist ? "You're on the waitlist, " : "You're confirmed, ") + escape(firstName) + '!' +
+          (allConfirmed ? "You're confirmed, " : allWaitlist ? "You're on the waitlist, " : 'Hi ') + escape(firstName) + '!' +
         '</h1>' +
         '<p style="margin:0 0 16px;color:#17140f;font-size:15px;line-height:1.6;">' + introText + '</p>' +
         '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border-collapse:collapse;">' +
-          '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Status</td>' +
-            '<td style="padding:4px 0;color:#17140f;font-size:14px;font-weight:700;">' + escape(info.status) + '</td></tr>' +
-          '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Booking code</td>' +
-            '<td style="padding:4px 0;color:#17140f;font-size:14px;font-weight:700;letter-spacing:0.04em;">' + escape(info.bookingCode) + '</td></tr>' +
-          '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Date</td>' +
-            '<td style="padding:4px 0;color:#17140f;font-size:14px;">Saturday, October 10, 2026</td></tr>' +
+          seatRows +
+          '<tr><td style="padding:8px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Date</td>' +
+            '<td style="padding:8px 0 4px;color:#17140f;font-size:14px;">Saturday, October 10, 2026</td></tr>' +
           '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Time</td>' +
             '<td style="padding:4px 0;color:#17140f;font-size:14px;">6:00 PM</td></tr>' +
           '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Venue</td>' +
-            '<td style="padding:4px 0;color:#17140f;font-size:14px;">OMIC Cultural Hub</td></tr>' +
+            '<td style="padding:4px 0;color:#17140f;font-size:14px;">OMIC Theatre, OMIC Cultural Hub</td></tr>' +
         '</table>' +
         checkInNote +
-        qrImg +
+        '<div style="text-align:center;">' + qrBlock + '</div>' +
       '</div>' +
     '</div>'
   );
@@ -568,11 +645,12 @@ function sendNewtonClosedNotice_(info) {
   });
 }
 
-// Appends one row to the Newton tracking spreadsheet: Name, Phone number,
-// Email, Registration timestamp, Status, Booking Code. The first five match
-// the sheet's existing header row; "Booking Code" is a 6th column this
-// integration adds -- add that header yourself in column F if it isn't
-// there yet (see EMAIL_NOTIFICATIONS_SETUP.md).
+// Appends one row to the Newton tracking spreadsheet, matching the sheet's
+// live column order: Name, Phone number, Email, Registration timestamp,
+// Guests, Status, Booking Code. A 2-guest booking calls this once per seat
+// (see handleNewtonRegistration), so two rows share the same Name/Phone/
+// Email/Timestamp/Guests but each carry their own seat's Status and Booking
+// Code.
 function appendNewtonRegistrationToSheet_(info) {
   var sheet = SpreadsheetApp.openById(NEWTON_SHEET_ID).getSheetByName(NEWTON_SHEET_TAB_NAME);
   if (!sheet) return;
@@ -582,6 +660,7 @@ function appendNewtonRegistrationToSheet_(info) {
     info.phone,
     info.email,
     info.timestamp,
+    info.guests || 1,
     info.status,
     info.bookingCode || '',
   ]);
@@ -604,6 +683,11 @@ function handleNewtonCapacityCheck_(params) {
     totalRegistered: count,
     seatsLeft: Math.max(0, NEWTON_CONFIRMED_SEATS - count),
     waitlistLeft: count >= NEWTON_CONFIRMED_SEATS ? Math.max(0, totalCapacity - count) : NEWTON_WAITLIST_SEATS,
+    // Total seats left of any kind (confirmed or waitlist) before
+    // registrations close entirely. src/main.js disables the "2 guests"
+    // option on the form when this drops to 1, since a 2-seat booking
+    // can't fit in a single remaining seat.
+    remaining: Math.max(0, totalCapacity - count),
     closed: count >= totalCapacity,
   });
 
@@ -632,6 +716,22 @@ function test_handleNewtonRegistration() {
     name: 'Authorization test -- delete me',
     phone: '+971500000000',
     email: NOTIFY_EMAIL,
+    guestCount: '1',
+  });
+}
+
+// Same as test_handleNewtonRegistration above, but exercises the 2-guest
+// booking path: this should append TWO rows to the sheet (same name/phone/
+// email/timestamp/guests, each with its own Status -- e.g. "CNF 4, CNF 5" --
+// and its own Booking Code), and send a single confirmation email containing
+// two distinct QR codes. Delete both test rows and the test email afterward.
+function test_handleNewtonRegistrationTwoGuests() {
+  handleNewtonRegistration({
+    timestamp: new Date().toISOString(),
+    name: 'Authorization test (2 guests) -- delete me',
+    phone: '+971500000000',
+    email: NOTIFY_EMAIL,
+    guestCount: '2',
   });
 }
 

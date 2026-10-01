@@ -17,8 +17,8 @@
   data-event-name="Newton"
   data-event-date="Saturday, October 10, 2026"
   data-event-time="6:00 PM"
-  data-event-venue="OMIC Cultural Hub"
-  data-event-blurb="A screening of Newton, followed by a Q&amp;A with director Amit Masurkar, actor Pankaj Tripathi, and producer Manish Mundra."
+  data-event-venue="OMIC Theatre, OMIC Cultural Hub"
+  data-event-blurb="A screening of Newton, followed by a Q&amp;A with director Amit Masurkar, actor Pankaj Tripathi, and producer Manish Mundra, moderated by Rashmi Devi Sawhney."
 >
   <!-- Google Tag Manager (noscript) -->
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-544K83CL"
@@ -70,6 +70,11 @@
           <h2 class="register-card__title">Register for Newton</h2>
           <p class="register-card__subtitle">Reserve your seat for the screening + Q&amp;A. Only 45 seats available — after that, registrations join the waitlist.</p>
 
+          <a class="register-card__location" href="https://maps.app.goo.gl/UWvTuSzfT7zGVK7BA?g_st=ic" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Goshi Warehouse City, Al Quoz, Dubai
+          </a>
+
           <form id="newtonForm" novalidate>
             <div class="field">
               <label for="newtonName">Name</label>
@@ -78,9 +83,29 @@
             </div>
 
             <div class="field">
+              <label>Number of Guests</label>
+              <div class="radio-bubble-group" id="newtonGuestCountGroup">
+                <label class="radio-bubble">
+                  <input type="radio" name="newtonGuestCount" value="1" checked />
+                  <span class="radio-bubble__dot" aria-hidden="true"></span>
+                  <span>1</span>
+                </label>
+                <label class="radio-bubble">
+                  <input type="radio" name="newtonGuestCount" value="2" />
+                  <span class="radio-bubble__dot" aria-hidden="true"></span>
+                  <span>2</span>
+                </label>
+              </div>
+              <p class="field-hint" id="newtonGuestCountHint"></p>
+            </div>
+
+            <div class="field">
               <label for="newtonPhone">Phone Number</label>
               <div class="phone-field">
-                <span class="phone-field__prefix" aria-hidden="true">🇦🇪 +971</span>
+                <select id="newtonPhoneCountry" class="phone-field__country" aria-label="Country code">
+                  <option value="971" selected>🇦🇪 +971</option>
+                  <option value="91">🇮🇳 +91</option>
+                </select>
                 <input type="tel" id="newtonPhone" name="newtonPhone" placeholder="5X XXX XXXX" autocomplete="tel-national" inputmode="numeric" />
               </div>
               <p class="error-message" id="newtonPhoneError"></p>
@@ -92,7 +117,14 @@
               <p class="error-message" id="newtonEmailError"></p>
             </div>
 
-            <button type="submit" id="newtonSubmit" class="btn btn--primary btn--block">Register</button>
+            <div class="field">
+              <label class="field-checkbox">
+                <input type="checkbox" id="newtonConsent" name="newtonConsent" />
+                <span class="field-checkbox__label">I understand that OMIC team will contact me for further details and confirmations.</span>
+              </label>
+            </div>
+
+            <button type="submit" id="newtonSubmit" class="btn btn--primary btn--block" disabled>Register</button>
           </form>
         </div>
 
@@ -135,14 +167,14 @@
           <span class="meta-card__dot dot--lavender"></span>
           <div>
             <p class="meta-card__label">Venue</p>
-            <p class="meta-card__value">OMIC Cultural Hub</p>
+            <p class="meta-card__value">OMIC Theatre, OMIC Cultural Hub</p>
           </div>
         </div>
         <div class="meta-card">
           <span class="meta-card__dot dot--green"></span>
           <div>
-            <p class="meta-card__label">Director</p>
-            <p class="meta-card__value">Amit V. Masurkar</p>
+            <p class="meta-card__label">QnA Panel Timing</p>
+            <p class="meta-card__value">7:45 PM</p>
           </div>
         </div>
       </div>
@@ -150,19 +182,23 @@
       <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>About the <span class="accent-blue">Film</span></h2>
       <div class="prose">
         <p>
-          Drishyam Films presents <em>Newton</em>, directed by Amit V. Masurkar and produced
-          by Manish Mundra. A rookie government clerk, Nutan &ldquo;Newton&rdquo; Kumar
-          (Rajkummar Rao), is assigned to oversee free and fair elections in a
-          Naxal-controlled region of Chhattisgarh. Despite the apathy of the security forces
-          escorting him and the looming threat of guerrilla attacks, he refuses to compromise
-          on conducting a fair vote — a quiet, absurdist standoff between one man's idealism
-          and a system that has long stopped expecting it.
+          Amit Masurkar's <em>Newton</em> was India's official entry to the 90th Academy
+          Awards. As India gears up for another massive election &mdash; with over 800
+          million voters and 9 million booths &mdash; rookie government clerk Newton Kumar is
+          assigned to conduct polls in a remote, conflict-ridden jungle of Central India.
+          Surrounded by Communist guerrillas and cut off from basic amenities, he must ensure
+          a &lsquo;free and fair&rsquo; election under extreme conditions.
         </p>
         <p>
-          <em>Newton</em> premiered in the Forum section of the 67th Berlin International
-          Film Festival, where it won the CICAE Art Cinema Award, and went on to win the
-          National Film Award for Best Feature Film in Hindi. It was India's official
-          submission for Best Foreign Language Film at the 90th Academy Awards.
+          Through one tense day, Newton confronts the harsh realities of democracy on the
+          ground &mdash; where idealism meets cynicism, and doing the right thing comes at a
+          cost. As they say in the jungle, &ldquo;The more things change, the worse they
+          get.&rdquo;
+        </p>
+        <p>
+          Stay after the screening and join us for a Q&amp;A with director Amit Masurkar,
+          actor Pankaj Tripathi, and producer Manish Mundra, moderated by Rashmi Devi
+          Sawhney.
         </p>
       </div>
 
@@ -172,29 +208,87 @@
           <span class="meta-card__dot dot--orange"></span>
           <div>
             <p class="meta-card__label">Runtime</p>
-            <p class="meta-card__value">106 minutes</p>
+            <p class="meta-card__value">105 minutes</p>
           </div>
         </div>
         <div class="meta-card">
           <span class="meta-card__dot dot--blue"></span>
           <div>
             <p class="meta-card__label">Genre</p>
-            <p class="meta-card__value">Black Comedy-Drama</p>
+            <p class="meta-card__value">Black Comedy</p>
           </div>
         </div>
         <div class="meta-card">
           <span class="meta-card__dot dot--lavender"></span>
           <div>
             <p class="meta-card__label">Language</p>
-            <p class="meta-card__value">Hindi</p>
+            <p class="meta-card__value">Hindi with English subtitles</p>
           </div>
         </div>
         <div class="meta-card">
           <span class="meta-card__dot dot--green"></span>
           <div>
             <p class="meta-card__label">Starring</p>
-            <p class="meta-card__value">Rajkummar Rao, Pankaj Tripathi, Raghubir Yadav, Anjali Patil</p>
+            <p class="meta-card__value">Rajkummar Rao, Anjali Patil, Pankaj Tripathi, Raghubir Yadav</p>
           </div>
+        </div>
+        <div class="meta-card">
+          <span class="meta-card__dot dot--orange"></span>
+          <div>
+            <p class="meta-card__label">Age Classification</p>
+            <p class="meta-card__value">13+</p>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Festivals &amp; <span class="accent-blue">Awards</span></h2>
+      <div class="prose">
+        <div class="guideline-block">
+          <p class="guideline-block__title">Festivals</p>
+          <ul class="guideline-list">
+            <li>World Premiere: Berlinale Forum 2017</li>
+            <li>Hong Kong International Film Festival 2017</li>
+            <li>Tribeca Film Festival 2017</li>
+          </ul>
+        </div>
+        <div class="guideline-block">
+          <p class="guideline-block__title">Awards</p>
+          <ul class="guideline-list">
+            <li>Berlinale Forum 2017 &mdash; CICAE Art Cinema Award</li>
+            <li>HKIFF 2017 &mdash; Jury Prize for Best Film</li>
+            <li>Asian Film Awards 2018 &mdash; Best Actor, Best Screenplay</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Things to <span class="accent-blue">Note</span></h2>
+      <div class="prose">
+        <ul class="guideline-list">
+          <li>Please arrive 30 minutes before the show starts to allow time for seating and parking.</li>
+          <li>While you're here, grab some drinks and popcorn at our caf&eacute;.</li>
+          <li>Paid parking is available at the venue.</li>
+          <li>Please keep your ticket ready before you enter the theatre.</li>
+          <li>The theatre can get cool, so bring a light layer.</li>
+        </ul>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Amenities</h2>
+      <div class="amenity-grid">
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 16V8h3a2.5 2.5 0 0 1 0 5H9"/></svg>
+          Paid parking
+        </div>
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-5a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v5"/></svg>
+          Restrooms
+        </div>
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h13v6a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8Z"/><path d="M16 8h2a3 3 0 0 1 0 6h-2"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>
+          Cafe
+        </div>
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a16 16 0 0 1 20 0"/><path d="M5 12a11 11 0 0 1 14 0"/><path d="M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+          Internet
         </div>
       </div>
 
@@ -222,6 +316,14 @@
           </div>
           <div class="profile-card__body">
             <p class="profile-card__name">Pankaj Tripathi <span class="profile-card__role">Actor</span></p>
+          </div>
+        </li>
+        <li class="profile-card">
+          <div class="profile-card__photo">
+            <img src="/artists/rashmi-devi-sawhney.jpg" alt="Rashmi Devi Sawhney" />
+          </div>
+          <div class="profile-card__body">
+            <p class="profile-card__name">Rashmi Devi Sawhney <span class="profile-card__role">Moderator</span></p>
           </div>
         </li>
       </ul>

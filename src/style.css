@@ -902,32 +902,167 @@ a {
   }
 }
 
-/* Phone field with a fixed country-code prefix chip (e.g. Newton's
-   registration form) — the visitor only types the local digits. */
+/* Phone field with a country-code select (e.g. Newton's registration form,
+   UAE or India) — the visitor only types the local digits. */
 .phone-field {
   display: flex;
   align-items: stretch;
   gap: 8px;
 }
 
-.phone-field__prefix {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
+/* Scoped under .phone-field (two classes) rather than bare
+   .phone-field__country (one class) so this reliably beats the generic
+   ".field select" rule's width:100% — equal-or-lower specificity there
+   was letting that rule win (it's declared later in this file) and
+   stretch the select to fill the whole row, squeezing the phone number
+   input out past the card's edge. */
+.phone-field .phone-field__country {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 104px;
+  padding: 11px 32px 11px 14px;
   border: 1px solid var(--cream-line);
   border-radius: 999px;
   background: #fff;
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-family: inherit;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8378' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+.phone-field .phone-field__country:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-tint);
 }
 
 .phone-field input {
   flex: 1;
   min-width: 0;
+}
+
+/* Radio "bubbles" (e.g. Newton's Number of Guests picker) */
+.radio-bubble-group {
+  display: flex;
+  gap: 22px;
+  padding-top: 2px;
+}
+
+.radio-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.radio-bubble input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-bubble__dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--cream-line);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+
+.radio-bubble__dot::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue);
+  transform: scale(0);
+  transition: transform 0.15s ease;
+}
+
+.radio-bubble input:checked + .radio-bubble__dot {
+  border-color: var(--blue);
+}
+
+.radio-bubble input:checked + .radio-bubble__dot::after {
+  transform: scale(1);
+}
+
+.radio-bubble input:focus-visible + .radio-bubble__dot {
+  box-shadow: 0 0 0 3px var(--blue-tint);
+}
+
+.radio-bubble.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Registration form's venue link (pin icon + address), e.g. Newton */
+.register-card__location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  margin: 0 0 20px;
+  border-bottom: 1px solid transparent;
+}
+
+.register-card__location:hover {
+  border-bottom-color: var(--ink);
+}
+
+.register-card__location svg {
+  flex-shrink: 0;
+  color: var(--blue);
+}
+
+/* Amenities grid (icon + label pills), e.g. Newton */
+.amenity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.amenity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--cream-line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.amenity-item svg {
+  flex-shrink: 0;
+  color: var(--blue);
+}
+
+@media (max-width: 480px) {
+  .amenity-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .poster-card {

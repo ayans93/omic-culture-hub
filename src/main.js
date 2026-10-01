@@ -723,15 +723,22 @@ function initArtworkForm() {
   });
 } // end initArtworkForm
 
-// The Newton show page's registration form: name, a UAE phone number (shown
-// with a fixed +971 prefix chip — the visitor only types the local digits),
-// and email. Seats are capped (45 confirmed, then a 25-person waitlist), so
-// the page also checks current availability on load and swaps the form out
-// for a "registrations are full" notice if capacity's already been reached.
+// The Newton show page's registration form: name, number of guests (1 or
+// 2), a phone number (UAE or India only — a country select next to a
+// local-digits-only field), email, and a consent checkbox that gates the
+// Register button. Seats are capped (45 confirmed, then a 25-person
+// waitlist), so the page also checks current availability on load and
+// swaps the form out for a "registrations are full" notice if capacity's
+// already been reached (or trims the guest-count options if only one seat
+// is left).
 function initNewtonForm() {
   const formWrap = document.getElementById('newtonFormWrap');
   const closedNotice = document.getElementById('newtonClosedNotice');
   const submitButton = document.getElementById('newtonSubmit');
+  const consentCheckbox = document.getElementById('newtonConsent');
+  const countrySelect = document.getElementById('newtonPhoneCountry');
+  const guestCountInputs = Array.from(document.querySelectorAll('input[name="newtonGuestCount"]'));
+  const guestCountHint = document.getElementById('newtonGuestCountHint');
 
   const eventName = document.body.dataset.eventName || document.title;
   const eventDate = document.body.dataset.eventDate || '';
@@ -739,7 +746,12 @@ function initNewtonForm() {
   const eventVenue = document.body.dataset.eventVenue || '';
   const eventBlurb = document.body.dataset.eventBlurb || '';
 
-  const LOCAL_PHONE_PATTERN = /^[0-9]{8,9}$/;
+  // Local-digit length (after the country code) for each of the two
+  // countries this form accepts — no other country code is offered.
+  const PHONE_LENGTHS = {
+    971: { min: 8, max: 9, label: 'Enter a valid UAE number, e.g. 5X XXX XXXX.' },
+    91: { min: 10, max: 10, label: 'Enter a valid 10-digit Indian mobile number.' },
+  };
 
   const fields = {
     name: {
@@ -759,13 +771,14 @@ function initNewtonForm() {
       input: document.getElementById('newtonPhone'),
       error: document.getElementById('newtonPhoneError'),
       validate(value) {
-        // The +971 prefix is a fixed chip next to this field, not part of
-        // its value — so this only validates the local digits the visitor
-        // actually typed.
+        // The country code is a separate <select>, not part of this
+        // field's value — so this only validates the local digits the
+        // visitor actually typed, against whichever country is selected.
         const normalized = value.trim().replace(/[\s()-]/g, '');
         if (!normalized) return 'Please enter your phone number.';
-        if (!LOCAL_PHONE_PATTERN.test(normalized)) {
-          return 'Enter a valid UAE number, e.g. 5X XXX XXXX.';
+        const rule = PHONE_LENGTHS[countrySelect.value] || PHONE_LENGTHS[971];
+        if (!/^[0-9]+$/.test(normalized) || normalized.length < rule.min || normalized.length > rule.max) {
+          return rule.label;
         }
         return '';
       },
@@ -813,8 +826,30 @@ function initNewtonForm() {
     });
   });
 
+  // Switching country re-checks the phone field against the new country's
+  // length, if an error is already showing.
+  countrySelect.addEventListener('change', () => {
+    if (fields.phone.error.classList.contains('is-visible')) {
+      validateField('phone');
+    }
+  });
+
+  function getGuestCount() {
+    const checked = guestCountInputs.find((input) => input.checked);
+    return checked ? parseInt(checked.value, 10) : 1;
+  }
+
+  // The Register button stays disabled until the consent checkbox is
+  // checked, regardless of what else is filled in — same pattern as the
+  // Art Contest's exhibition-consent checkbox.
+  function updateSubmitAvailability() {
+    submitButton.disabled = !consentCheckbox.checked;
+  }
+  consentCheckbox.addEventListener('change', updateSubmitAvailability);
+  updateSubmitAvailability();
+
   function setSubmitting(isSubmitting) {
-    submitButton.disabled = isSubmitting;
+    submitButton.disabled = isSubmitting || !consentCheckbox.checked;
     submitButton.textContent = isSubmitting ? 'Registering…' : 'Register';
   }
 
@@ -839,6 +874,7 @@ function initNewtonForm() {
       name: data.name,
       phone: data.phone,
       email: data.email,
+      guestCount: String(data.guestCount),
     });
 
     // Same fire-and-forget pattern as the other forms on this site: Apps
@@ -872,8 +908,9 @@ function initNewtonForm() {
   // wraps its JSON in a call to this one-off callback instead. If this
   // can't be reached for any reason (offline, ad blocker, endpoint not
   // configured yet), we fail open and leave the form up; the Apps Script
-  // side still enforces the real 45+25 limit when it processes a
-  // submission, so nothing can actually overbook from this check failing.
+  // side still enforces the real 45+25 limit (and the 2-guests-per-booking
+  // cap) when it processes a submission, so nothing can actually overbook
+  // from this check failing.
   function checkNewtonCapacity() {
     if (!REGISTRATION_NOTIFY_ENDPOINT || REGISTRATION_NOTIFY_ENDPOINT.includes('PASTE_YOUR')) return;
 
@@ -889,6 +926,19 @@ function initNewtonForm() {
       if (data && data.closed) {
         formWrap.hidden = true;
         closedNotice.hidden = false;
+      } else if (data && data.remaining === 1) {
+        // Only one seat left in total -- booking for 2 would always fail,
+        // so don't offer that option in the first place.
+        const twoGuestsInput = guestCountInputs.find((input) => input.value === '2');
+        if (twoGuestsInput) {
+          twoGuestsInput.disabled = true;
+          twoGuestsInput.closest('.radio-bubble').classList.add('is-disabled');
+          if (twoGuestsInput.checked) {
+            const oneGuestInput = guestCountInputs.find((input) => input.value === '1');
+            if (oneGuestInput) oneGuestInput.checked = true;
+          }
+        }
+        if (guestCountHint) guestCountHint.textContent = 'Only 1 seat left — bookings for 2 are unavailable right now.';
       }
       cleanup();
     };
@@ -902,6 +952,8 @@ function initNewtonForm() {
 
   document.getElementById('newtonForm').addEventListener('submit', async (event) => {
     event.preventDefault();
+
+    if (!consentCheckbox.checked) return;
 
     const results = Object.keys(fields).map((key) => validateField(key));
     const allValid = results.every(Boolean);
@@ -918,8 +970,9 @@ function initNewtonForm() {
 
     const data = {
       name: fields.name.input.value.trim(),
-      phone: '+971' + fields.phone.input.value.trim().replace(/[\s()-]/g, ''),
+      phone: '+' + countrySelect.value + fields.phone.input.value.trim().replace(/[\s()-]/g, ''),
       email: fields.email.input.value.trim(),
+      guestCount: getGuestCount(),
     };
 
     setSubmitting(true);
