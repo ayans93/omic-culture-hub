@@ -1399,6 +1399,16 @@ a {
   grid-row: 1 / 3;
 }
 
+/* Newton's "Register" buttons (above the poster and at the bottom of the
+   page) jump to #register, which sits on this same .sidebar element. Without
+   this, the browser scrolls it flush to the very top of the viewport, right
+   under the sticky site header -- close to the 88px .sidebar already uses
+   above for its own sticky offset, plus a little extra so the register card
+   has clear daylight under the header instead of sitting flush against it. */
+#register {
+  scroll-margin-top: 104px;
+}
+
 /* Some pages (the Art Contest submission form in particular) pair a very
    tall form with an even taller info column. Keeping the form sticky there
    means most of it sits pinned off the bottom of the screen, then rushes
