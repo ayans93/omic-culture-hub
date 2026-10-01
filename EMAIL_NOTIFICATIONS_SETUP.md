@@ -45,8 +45,8 @@ column order updated to match.
 
 Newton's registration form works a little differently, since seats are
 limited: it emails the team the same way, then hands the registrant a real
-confirmation or waitlist number ("CNF 1" through "CNF 45", then "WL 1"
-through "WL 25"), a booking code, and a QR code for check-in, generated and
+confirmation or waitlist number ("CNF 1" through "CNF 50", then "WL 1"
+through "WL 30"), a booking code, and a QR code for check-in, generated and
 sent as part of the same email. See "Newton's registrations" below for the
 full details.
 
@@ -96,14 +96,14 @@ Save the file. Restart `npm run dev` if it's already running.
 
 ## Newton's registrations
 
-Newton has 45 confirmed seats and a 25-person waitlist (70 total), after
+Newton has 50 confirmed seats and a 30-person waitlist (80 total), after
 which registrations close automatically. Each submission is logged as a new
 row in the "Newton Show Registrations" spreadsheet:
 https://docs.google.com/spreadsheets/d/1F6b2quflVCcglnJbVw4ZynmxL1u8Lt9O-h3y4d97Y1o
 
 - **Name, Phone number, Email, Registration timestamp, Status** are the
-  sheet's existing columns. "Status" is "CNF 1" through "CNF 45" for
-  confirmed seats, then "WL 1" through "WL 25" for the waitlist.
+  sheet's existing columns. "Status" is "CNF 1" through "CNF 50" for
+  confirmed seats, then "WL 1" through "WL 30" for the waitlist.
 - **Booking Code** is a 6th column this integration adds (an 8-character
   code like `68NF-O8R3`). If it isn't already the header in column F, add it
   yourself — the script doesn't create sheet columns, only rows.

@@ -1583,6 +1583,12 @@ a {
   color: var(--blue);
 }
 
+.field--checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Structured bullet lists (Submission Guidelines) */
 .guideline-block {
   margin: 0 0 24px;

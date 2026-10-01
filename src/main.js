@@ -747,8 +747,9 @@ function initArtworkForm() {
 
 // The Newton show page's registration form: name, number of guests (1 or
 // 2), a phone number (UAE or India only — a country select next to a
-// local-digits-only field), email, and a consent checkbox that gates the
-// Register button. Seats are capped (45 confirmed, then a 25-person
+// local-digits-only field), email, a mandatory consent checkbox that gates
+// the Register button, and an optional marketing opt-in checkbox that does
+// not. Seats are capped (50 confirmed, then a 30-person
 // waitlist), so the page also checks current availability on load and
 // swaps the form out for a "registrations are full" notice if capacity's
 // already been reached (or trims the guest-count options if only one seat
@@ -758,6 +759,7 @@ function initNewtonForm() {
   const closedNotice = document.getElementById('newtonClosedNotice');
   const submitButton = document.getElementById('newtonSubmit');
   const consentCheckbox = document.getElementById('newtonConsent');
+  const marketingOptInCheckbox = document.getElementById('newtonMarketingOptIn');
   const countrySelect = document.getElementById('newtonPhoneCountry');
   const guestCountInputs = Array.from(document.querySelectorAll('input[name="newtonGuestCount"]'));
   const guestCountHint = document.getElementById('newtonGuestCountHint');
@@ -898,6 +900,7 @@ function initNewtonForm() {
       phone: data.phone,
       email: data.email,
       guestCount: String(data.guestCount),
+      marketingOptIn: data.marketingOptIn ? 'yes' : 'no',
     });
 
     // Same fire-and-forget pattern as the other forms on this site: Apps
@@ -931,7 +934,7 @@ function initNewtonForm() {
   // wraps its JSON in a call to this one-off callback instead. If this
   // can't be reached for any reason (offline, ad blocker, endpoint not
   // configured yet), we fail open and leave the form up; the Apps Script
-  // side still enforces the real 45+25 limit (and the 2-guests-per-booking
+  // side still enforces the real 50+30 limit (and the 2-guests-per-booking
   // cap) when it processes a submission, so nothing can actually overbook
   // from this check failing.
   function checkNewtonCapacity() {
@@ -996,6 +999,7 @@ function initNewtonForm() {
       phone: '+' + countrySelect.value + fields.phone.input.value.trim().replace(/[\s()-]/g, ''),
       email: fields.email.input.value.trim(),
       guestCount: getGuestCount(),
+      marketingOptIn: marketingOptInCheckbox.checked,
     };
 
     setSubmitting(true);

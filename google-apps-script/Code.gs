@@ -63,10 +63,21 @@ var ART_PRIZE_SHEET_TAB_NAME = 'Sheet1';
 var NEWTON_SHEET_ID = '1F6b2quflVCcglnJbVw4ZynmxL1u8Lt9O-h3y4d97Y1o';
 var NEWTON_SHEET_TAB_NAME = 'Sheet1';
 
-// Newton has 45 confirmed seats, then a 25-person waitlist (70 total)
+// Newton has 50 confirmed seats, then a 30-person waitlist (80 total)
 // before registrations close.
-var NEWTON_CONFIRMED_SEATS = 45;
-var NEWTON_WAITLIST_SEATS = 25;
+var NEWTON_CONFIRMED_SEATS = 50;
+var NEWTON_WAITLIST_SEATS = 30;
+
+// Shown on the Newton event page under "Things to Note", and copied into
+// every registrant's confirmation email (see buildNewtonConfirmationHtml_
+// and sendNewtonConfirmation_ below) so the two stay in sync.
+var NEWTON_THINGS_TO_NOTE = [
+  'Please arrive 30 minutes before the show starts to allow time for seating and parking.',
+  "While you're here, grab some drinks and popcorn at our café.",
+  'Paid parking is available at the venue.',
+  'Please keep your ticket ready before you enter the theatre.',
+  'The theatre can get cool, so bring a light layer.',
+];
 
 // A single booking can reserve at most this many seats. The form only ever
 // sends 1 or 2 (see the "Number of Guests" radio bubbles in newton.html /
@@ -372,7 +383,7 @@ function appendArtworkSubmissionToSheet_(info) {
 }
 
 // Newton's registration form: name, phone, email, and a guest count of 1 or
-// 2. Seats are limited (45 confirmed, then a 25-person waitlist), so this
+// 2. Seats are limited (50 confirmed, then a 30-person waitlist), so this
 // atomically hands out the next 1 or 2 confirmation/waitlist numbers (the
 // whole party at once -- see allocateNewtonSeats_), generates one booking
 // code + QR code per seat, emails the registrant a single confirmation with
@@ -387,6 +398,13 @@ function handleNewtonRegistration(params) {
   var guestCount = parseInt(params.guestCount, 10);
   if (!guestCount || guestCount < 1) guestCount = 1;
   if (guestCount > NEWTON_MAX_GUESTS_PER_BOOKING) guestCount = NEWTON_MAX_GUESTS_PER_BOOKING;
+
+  // Optional "I'd like to hear about upcoming screenings and events"
+  // checkbox -- unlike the mandatory consent checkbox, this doesn't gate
+  // submission at all, it's just recorded for the team's awareness (not
+  // written to the tracking sheet, which the user doesn't want a new column
+  // added to).
+  var marketingOptIn = params.marketingOptIn === 'yes';
 
   // LockService serializes concurrent submissions so two parties landing at
   // the same instant can't both be handed the same confirmation number --
@@ -452,6 +470,7 @@ function handleNewtonRegistration(params) {
     'Phone: ' + phone,
     'Email: ' + email,
     'Guests: ' + guestCount,
+    'Wants updates on future screenings: ' + (marketingOptIn ? 'Yes' : 'No'),
     'Status: ' + (allocations.length
       ? statusSummary
       : 'Registrations were already full when this arrived -- logged for reference only, no confirmation email sent.'),
@@ -485,8 +504,8 @@ function handleNewtonRegistration(params) {
 }
 
 // Reads the current row count from the Newton sheet and hands out the next
-// `guestCount` seats as one all-or-nothing block: "CNF 1".."CNF 45", then
-// "WL 1".."WL 25", then closed once both are full. A party is never split
+// `guestCount` seats as one all-or-nothing block: "CNF 1".."CNF 50", then
+// "WL 1".."WL 30", then closed once both are full. A party is never split
 // across "fits" and "doesn't fit" -- if there isn't room for every seat the
 // party asked for, none are allocated (empty array back) and the whole
 // booking is treated as closed, same as handleNewtonRegistration's single-
@@ -591,6 +610,13 @@ function sendNewtonConfirmation_(info) {
     '',
     'Newton screens Saturday, October 10, 2026 at 6:00 PM at OMIC Cultural Hub, followed by a Q&A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi Sawhney.',
     '',
+    'Things to note:'
+  );
+  NEWTON_THINGS_TO_NOTE.forEach(function (note) {
+    textLines.push('- ' + note);
+  });
+  textLines.push(
+    '',
     '— OMIC Cultural Hub'
   );
 
@@ -644,6 +670,14 @@ function buildNewtonConfirmationHtml_(info, firstName, allocations, qrBlobs) {
     return '<img src="cid:newtonQr' + index + '" width="160" height="160" alt="Booking QR code ' + (index + 1) + '" style="display:inline-block;margin:8px;border-radius:8px;" />';
   }).join('');
 
+  var thingsToNoteItems = NEWTON_THINGS_TO_NOTE.map(function (note) {
+    return '<li style="margin:0 0 8px;">' + escape(note) + '</li>';
+  }).join('');
+
+  var thingsToNoteBlock =
+    '<h2 style="margin:24px 0 10px;font-size:15px;color:#17140f;">Things to Note</h2>' +
+    '<ul style="margin:0;padding-left:18px;color:#37332b;font-size:13px;line-height:1.6;">' + thingsToNoteItems + '</ul>';
+
   return (
     '<div style="background:#f4ede1;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;">' +
       '<div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e6dcc9;border-radius:16px;padding:32px;">' +
@@ -663,6 +697,7 @@ function buildNewtonConfirmationHtml_(info, firstName, allocations, qrBlobs) {
         '</table>' +
         checkInNote +
         '<div style="text-align:center;">' + qrBlock + '</div>' +
+        thingsToNoteBlock +
       '</div>' +
     '</div>'
   );
