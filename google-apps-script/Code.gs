@@ -608,7 +608,7 @@ function sendNewtonConfirmation_(info) {
         ? "We'll reach out if confirmed seats open up before the screening."
         : "The confirmed seat(s) above are set -- we'll reach out if the waitlisted seat(s) open up before the screening.",
     '',
-    'Newton screens Saturday, October 10, 2026 at 6:00 PM at OMIC Cultural Hub, followed by a Q&A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi Sawhney.',
+    'Newton screens Saturday, October 10, 2026 at 6:00 PM at OMIC Cultural Hub, followed by a Q&A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi.',
     '',
     'Things to note:'
   );
@@ -648,7 +648,7 @@ function buildNewtonConfirmationHtml_(info, firstName, allocations, qrBlobs) {
   var allConfirmed = confirmedCount === seatCount;
 
   var introText = allConfirmed
-    ? "You're booked in for <strong>Newton</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + " — a screening followed by a Q&amp;A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi Sawhney."
+    ? "You're booked in for <strong>Newton</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + " — a screening followed by a Q&amp;A with director Amit Masurkar, actor Pankaj Tripathi, producer Manish Mundra, and moderator Rashmi Devi."
     : allWaitlist
       ? "You've been added to the waitlist for <strong>Newton</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + ". We'll reach out if confirmed seats open up before the screening."
       : "Part of your booking for <strong>Newton</strong> is confirmed, and part is on the waitlist — see the breakdown below.";
