@@ -72,8 +72,9 @@
           href="https://www.youtube.com/watch?v=yU6zMPFd4UU"
           target="_blank"
           rel="noopener"
-          aria-label="Watch the Newton trailer on YouTube (opens in a new tab)"
+          aria-label="Watch the Newton trailer"
           data-carousel-frame="trailer"
+          id="trailerModalTrigger"
         >
           <img
             src="https://img.youtube.com/vi/yU6zMPFd4UU/maxresdefault.jpg"
@@ -364,6 +365,21 @@
     </section>
 
   </main>
+
+  <div class="overlay" id="trailerModal" hidden>
+    <div class="video-modal-card">
+      <button type="button" class="video-modal-close" id="trailerModalClose" aria-label="Close">&times;</button>
+      <div class="video-modal-frame-wrap">
+        <iframe
+          class="video-modal-frame"
+          id="trailerModalFrame"
+          title="Newton &mdash; Official Trailer"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="site-footer__inner">

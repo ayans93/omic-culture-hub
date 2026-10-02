@@ -58,6 +58,13 @@ if (rulesModalTrigger) {
   initRulesModal();
 }
 
+const trailerModalTrigger = document.getElementById('trailerModalTrigger');
+
+// Only the Newton show page has the trailer link + modal player.
+if (trailerModalTrigger) {
+  initTrailerModal();
+}
+
 const navToggle = document.getElementById('navToggle');
 
 // The mobile "burger" menu button is on every page's shared header.
@@ -1128,3 +1135,51 @@ function initRulesModal() {
     if (event.key === 'Escape' && !rulesModal.hidden) closeModal();
   });
 } // end initRulesModal
+
+// The poster/trailer carousel's trailer frame opens the YouTube trailer in
+// an in-page modal (an embedded player) instead of leaving the site. The
+// trigger keeps its original href pointing straight at the YouTube watch
+// page and target="_blank", so it still degrades gracefully -- opening the
+// trailer in a new tab -- for anyone browsing with JavaScript disabled.
+function initTrailerModal() {
+  const trailerModal = document.getElementById('trailerModal');
+  const trailerModalFrame = document.getElementById('trailerModalFrame');
+  const trailerModalClose = document.getElementById('trailerModalClose');
+
+  // Pull the video ID out of the trigger's own watch-page URL rather than
+  // hardcoding it a second time, so the two never drift apart.
+  const watchUrl = new URL(trailerModalTrigger.href);
+  const videoId = watchUrl.searchParams.get('v');
+  const embedUrl = videoId
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`
+    : null;
+
+  function openModal() {
+    if (!embedUrl) return; // no video ID parsed -- fall back to the normal link
+    trailerModalFrame.src = embedUrl;
+    trailerModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    trailerModal.hidden = true;
+    document.body.style.overflow = '';
+    // Clearing the src (rather than just hiding the modal) actually stops
+    // playback instead of leaving the trailer running silently behind it.
+    trailerModalFrame.src = '';
+  }
+
+  trailerModalTrigger.addEventListener('click', (event) => {
+    if (!embedUrl) return;
+    event.preventDefault();
+    openModal();
+  });
+
+  trailerModalClose.addEventListener('click', closeModal);
+  trailerModal.addEventListener('click', (event) => {
+    if (event.target === trailerModal) closeModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !trailerModal.hidden) closeModal();
+  });
+} // end initTrailerModal
