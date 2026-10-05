@@ -12,6 +12,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         events: resolve(__dirname, 'events.html'),
         nothingUnusual: resolve(__dirname, 'nothing-unusual.html'),
+        livingRoom: resolve(__dirname, 'living-room.html'),
         artCompetition: resolve(__dirname, 'art-competition.html'),
         videoArtTalk: resolve(__dirname, 'video-art-talk.html'),
         newton: resolve(__dirname, 'newton.html'),

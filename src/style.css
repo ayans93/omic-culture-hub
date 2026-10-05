@@ -1159,6 +1159,17 @@ a {
   color: var(--blue);
 }
 
+/* Contact-details card (replaces a registration form on pages with no
+   sign-up, e.g. Living Room): stacks several icon + text rows, reusing
+   .register-card__location's look but forcing each onto its own line. */
+.contact-list .register-card__location {
+  display: flex;
+}
+
+.contact-list .register-card__location:last-child {
+  margin-bottom: 0;
+}
+
 /* Amenities grid (icon + label pills), e.g. Newton */
 .amenity-grid {
   display: grid;
