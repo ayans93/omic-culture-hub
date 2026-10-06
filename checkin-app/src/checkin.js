@@ -7,7 +7,7 @@ const STORAGE_KEY = 'omicCheckinAuth';
 // Apps Script JSONP helper (same convention as checkNewtonCapacity in
 // main.js -- Apps Script Web App responses carry no CORS headers, so a
 // <script> tag + callback is what lets us read a response at all).
-function checkinApiCall(formType, extraParams) {
+function checkinApiCallOnce(formType, extraParams) {
   return new Promise((resolve, reject) => {
     if (!CHECKIN_ENDPOINT || CHECKIN_ENDPOINT.includes('PASTE_YOUR')) {
       reject(new Error('Check-in endpoint is not configured.'));
@@ -42,6 +42,32 @@ function checkinApiCall(formType, extraParams) {
     script.src = CHECKIN_ENDPOINT + '?' + params.toString();
     document.body.appendChild(script);
   });
+}
+
+function checkinWait_(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Door venues routinely have patchy wifi/cellular -- a single dropped
+// <script> load (script.onerror above) or a slow response (the 20s
+// timeout above) shouldn't force the admin to manually retry every time.
+// This transparently retries transient network failures up to twice more
+// (3 attempts total, with a short backoff) before giving up and surfacing
+// an error. "Endpoint not configured" is a permanent misconfiguration, not
+// a network blip, so it fails immediately instead of retrying.
+async function checkinApiCall(formType, extraParams, attempt) {
+  attempt = attempt || 1;
+  const MAX_ATTEMPTS = 3;
+  try {
+    return await checkinApiCallOnce(formType, extraParams);
+  } catch (err) {
+    const isPermanent = /not configured/i.test((err && err.message) || '');
+    if (isPermanent || attempt >= MAX_ATTEMPTS) {
+      throw err;
+    }
+    await checkinWait_(attempt * 700);
+    return checkinApiCall(formType, extraParams, attempt + 1);
+  }
 }
 
 function getStoredAuth() {
