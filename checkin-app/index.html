@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Door Check-In | OMIC Cultural Hub</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body class="checkin-body">
+
+  <div class="checkin-shell">
+    <header class="checkin-topbar">
+      <a href="/" class="logo-mark logo-mark--small" aria-label="OMIC">
+        <span class="logo-mark__circle">O</span>
+        <span class="logo-mark__circle">M</span>
+        <span class="logo-mark__circle">I</span>
+        <span class="logo-mark__circle">C</span>
+      </a>
+      <p class="checkin-topbar__title">Newton Door Check-In</p>
+      <button type="button" id="logoutBtn" class="btn btn--secondary checkin-logout-btn" hidden>Log out</button>
+    </header>
+
+    <main class="checkin-main">
+
+      <!-- LOGIN VIEW -->
+      <section id="loginView" class="checkin-login">
+        <div class="checkin-login__card">
+          <h1 class="checkin-login__title">Admin Login</h1>
+          <p class="checkin-login__subtitle">Sign in to check guests in at the door.</p>
+
+          <form id="loginForm" novalidate>
+            <div class="field">
+              <label for="loginEmail">Admin email</label>
+              <select id="loginEmail" name="loginEmail" required>
+                <option value="" selected disabled>Select your email</option>
+                <option value="ayan@dviu.in">ayan@dviu.in</option>
+                <option value="cinema@omic.spot">cinema@omic.spot</option>
+                <option value="gallery@omic.spot">gallery@omic.spot</option>
+                <option value="labellaarthub@gmail.com">labellaarthub@gmail.com</option>
+                <option value="gauravjain@drishyamfilms.com">gauravjain@drishyamfilms.com</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" name="loginPassword" placeholder="Password" autocomplete="current-password" />
+            </div>
+
+            <p class="error-message" id="loginError"></p>
+
+            <button type="submit" id="loginSubmit" class="btn btn--primary btn--block">Log In</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- APP VIEW -->
+      <section id="appView" class="checkin-app" hidden>
+
+        <div class="checkin-tabs" role="tablist">
+          <button type="button" class="checkin-tab is-active" id="tabBtnScanner" role="tab" aria-selected="true" data-tab="scanner">Open Scanner</button>
+          <button type="button" class="checkin-tab" id="tabBtnGuestList" role="tab" aria-selected="false" data-tab="guestlist">Guest List</button>
+        </div>
+
+        <!-- SCANNER TAB -->
+        <div class="checkin-panel" id="panelScanner" role="tabpanel">
+
+          <div id="scannerIdle" class="checkin-scanner-idle">
+            <h2 class="checkin-scanner-idle__title">Open Scanner</h2>
+            <button type="button" id="openScannerBtn" class="checkin-scanner-btn" aria-label="Open scanner">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+              </svg>
+            </button>
+            <p class="checkin-scanner-idle__hint">Tap to scan a guest's QR code</p>
+          </div>
+
+          <div id="scannerCameraWrap" class="checkin-camera-wrap" hidden>
+            <div id="scannerCameraView" class="checkin-camera-view"></div>
+            <p id="scannerCameraStatus" class="checkin-camera-status">Point the camera at the guest's QR code</p>
+            <button type="button" id="closeScannerBtn" class="btn btn--secondary checkin-camera-close">Cancel</button>
+          </div>
+
+          <div id="scannerResult" class="checkin-result" hidden></div>
+
+        </div>
+
+        <!-- GUEST LIST TAB -->
+        <div class="checkin-panel" id="panelGuestList" role="tabpanel" hidden>
+
+          <form id="guestSearchForm" class="checkin-search">
+            <input type="text" id="guestSearchInput" placeholder="Search by name, email or phone" autocomplete="off" />
+            <button type="submit" class="btn btn--primary">Search</button>
+          </form>
+
+          <p id="guestListStatus" class="checkin-list-status">Search for a guest above, or press Search with the box empty to see everyone.</p>
+
+          <div id="guestListTableWrap" class="checkin-table-wrap" hidden>
+            <table class="checkin-table">
+              <thead>
+                <tr>
+                  <th class="checkin-table__check"><input type="checkbox" id="selectAllCheckbox" aria-label="Select all" /></th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Guests</th>
+                  <th>Status</th>
+                  <th>User Type</th>
+                  <th>Check-in</th>
+                </tr>
+              </thead>
+              <tbody id="guestListTbody"></tbody>
+            </table>
+          </div>
+
+          <div class="checkin-bulk-bar">
+            <button type="button" id="markPresentBtn" class="btn btn--primary" disabled>Mark as present</button>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Confirm "mark as present" dialog -->
+  <div class="overlay" id="confirmMarkModal" hidden>
+    <div class="checkin-confirm-card">
+      <p id="confirmMarkText" class="checkin-confirm-text"></p>
+      <div class="checkin-confirm-actions">
+        <button type="button" id="confirmMarkBack" class="btn btn--secondary">Back</button>
+        <button type="button" id="confirmMarkYes" class="btn btn--primary">Yes</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/checkin.js"></script>
+</body>
+</html>
