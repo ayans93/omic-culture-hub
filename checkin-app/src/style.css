@@ -27,8 +27,11 @@
   --lavender-tint: #ece0fa;
   --green: #3fae52;
   --green-tint: #dcf1e0;
+  --yellow: #c99a1e;
+  --yellow-tint: #faf0d1;
 
   --error: #b3261e;
+  --error-tint: #f7dddb;
   --success: #3fae52;
 
   --radius: 16px;
@@ -619,12 +622,37 @@ a {
 
 .checkin-result-card {
   background: var(--card);
-  border: 1px solid var(--cream-line);
+  border: 2px solid var(--cream-line);
   border-radius: var(--radius);
   padding: 32px 28px;
   max-width: 420px;
   width: 100%;
   text-align: center;
+}
+
+/* Each scanner outcome gets its own full card theme (tinted background +
+   matching border), not just a colored icon -- meant to read at a glance
+   from a few feet away at a busy door: green = freshly marked present,
+   yellow = waitlisted (not let in), orange = duplicate scan, red = not
+   found / error. */
+.checkin-result-card--success {
+  background: var(--green-tint);
+  border-color: var(--green);
+}
+
+.checkin-result-card--waitlist {
+  background: var(--yellow-tint);
+  border-color: var(--yellow);
+}
+
+.checkin-result-card--warn {
+  background: var(--orange-tint);
+  border-color: var(--orange);
+}
+
+.checkin-result-card--error {
+  background: var(--error-tint);
+  border-color: var(--error);
 }
 
 .checkin-result-icon {
@@ -637,22 +665,20 @@ a {
   justify-content: center;
   font-size: 28px;
   font-weight: 700;
-  background: var(--green-tint);
+  background: #fff;
   color: var(--green);
+  box-shadow: 0 2px 8px rgba(23, 20, 15, 0.1);
 }
 
-.checkin-result-card--success .checkin-result-icon {
-  background: var(--green-tint);
-  color: var(--green);
+.checkin-result-icon--waitlist {
+  color: var(--yellow);
 }
 
 .checkin-result-icon--warn {
-  background: var(--orange-tint);
   color: var(--orange);
 }
 
 .checkin-result-icon--error {
-  background: rgba(179, 38, 30, 0.12);
   color: var(--error);
 }
 

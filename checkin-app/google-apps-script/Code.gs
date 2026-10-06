@@ -55,6 +55,16 @@ var CHECKIN_ADMIN_USERS = {
   'gauravjain@drishyamfilms.com': 'Omic@2026',
 };
 
+// True for a Status value like "WL 1", "WL1", "wl 23" -- the "Final List"
+// sheet's waitlist marker is "WL" followed by a number, optionally with a
+// space (confirmed from the live sheet: "WL 1", "WL 17", etc., alongside
+// "CNF 1", "CNF 2" for confirmed seats). Waitlisted guests should NOT be
+// marked present by a scan -- they're asked to wait in the cafe until all
+// confirmed guests are seated, per the door process this app exists for.
+function checkinIsWaitlisted_(status) {
+  return /^wl\s*\d+/i.test(String(status || '').trim());
+}
+
 function checkinAuthOk_(params) {
   var email = String((params && params.email) || '').trim().toLowerCase();
   var password = String((params && params.password) || '');
@@ -114,7 +124,17 @@ function handleCheckinLookup_(params) {
   }
 
   var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  try {
+    lock.waitLock(10000);
+  } catch (lockErr) {
+    // Another scan was mid-write and we couldn't get the lock in time --
+    // report this as a normal (catchable) error instead of letting Apps
+    // Script throw all the way up to an HTML error page, which would
+    // silently break the <script> JSONP callback and leave the scanner
+    // stuck on "Checking..." until the client-side 20s timeout.
+    return checkinRespond_({ ok: false, error: 'busy_try_again' }, params);
+  }
+
   try {
     var sheet = SpreadsheetApp.openById(CHECKIN_SHEET_ID).getSheetByName(CHECKIN_SHEET_TAB_NAME);
     if (!sheet) {
@@ -129,8 +149,18 @@ function handleCheckinLookup_(params) {
       var rowNumber = i + 1;
       var guest = checkinRowToGuest_(rowNumber, data[i]);
 
+      // Ground truth first: if the sheet already says this guest is
+      // checked in (whether from an earlier scan or a manual Guest List
+      // mark), report that -- regardless of waitlist status, since
+      // someone already made the call to let them in.
       if (guest.checkedIn) {
         return checkinRespond_({ ok: true, found: true, alreadyMarked: true, guest: guest }, params);
+      }
+
+      // Waitlisted and not yet checked in: don't mark present. Door staff
+      // asks them to wait in the cafe instead.
+      if (checkinIsWaitlisted_(guest.status)) {
+        return checkinRespond_({ ok: true, found: true, waitlisted: true, guest: guest }, params);
       }
 
       sheet.getRange(rowNumber, CHECKIN_COL.CHECKED_IN).setValue(true);
@@ -139,6 +169,13 @@ function handleCheckinLookup_(params) {
     }
 
     return checkinRespond_({ ok: true, found: false }, params);
+  } catch (err) {
+    // Same reasoning as the lock-timeout branch above: never let an
+    // unexpected error (a transient Sheets API hiccup, etc.) propagate
+    // into an Apps Script HTML error page -- always hand back valid
+    // JS/JSON so the frontend can show a real error message instead of
+    // hanging silently.
+    return checkinRespond_({ ok: false, error: 'unexpected_error' }, params);
   } finally {
     lock.releaseLock();
   }
@@ -188,7 +225,12 @@ function handleCheckinBulkMark_(params) {
   }
 
   var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  try {
+    lock.waitLock(10000);
+  } catch (lockErr) {
+    return checkinRespond_({ ok: false, error: 'busy_try_again' }, params);
+  }
+
   try {
     var sheet = SpreadsheetApp.openById(CHECKIN_SHEET_ID).getSheetByName(CHECKIN_SHEET_TAB_NAME);
     if (!sheet) {
@@ -204,6 +246,8 @@ function handleCheckinBulkMark_(params) {
     }
 
     return checkinRespond_({ ok: true, marked: marked }, params);
+  } catch (err) {
+    return checkinRespond_({ ok: false, error: 'unexpected_error' }, params);
   } finally {
     lock.releaseLock();
   }

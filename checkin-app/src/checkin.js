@@ -299,6 +299,7 @@ function guestDetailRows(guest) {
     <div class="checkin-detail-row"><span>Name</span><strong>${escapeHtml(guest.name || '—')}</strong></div>
     <div class="checkin-detail-row"><span>Email</span><strong>${escapeHtml(guest.email || '—')}</strong></div>
     <div class="checkin-detail-row"><span>Phone</span><strong>${escapeHtml(guest.phone || '—')}</strong></div>
+    <div class="checkin-detail-row"><span>Status</span><strong>${escapeHtml(guest.status || '—')}</strong></div>
     <div class="checkin-detail-row"><span>User Type</span><strong>${escapeHtml(guest.userType || '—')}</strong></div>
     <div class="checkin-detail-row"><span>Number of Guests</span><strong>${escapeHtml(String(guest.guests || '—'))}</strong></div>
     <div class="checkin-detail-row"><span>Booking Code</span><strong>${escapeHtml(guest.bookingCode || '—')}</strong></div>
@@ -320,11 +321,29 @@ function renderMarkedPresent(guest) {
   wireResultActions();
 }
 
+function renderWaitlisted(guest) {
+  scannerResult.innerHTML = `
+    <div class="checkin-result-card checkin-result-card--waitlist">
+      <div class="checkin-result-icon checkin-result-icon--waitlist" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h2 class="checkin-result-title">User is on waitlist</h2>
+      <p class="checkin-result-desc">Please ask the guest to take a seat in the cafe until confirmed guests are seated.</p>
+      <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
+      <div class="checkin-result-actions">
+        <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
+        <button type="button" class="btn btn--primary" id="resultScanNextBtn">Scan Next</button>
+      </div>
+    </div>
+  `;
+  wireResultActions();
+}
+
 function renderAlreadyMarked(guest) {
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--warn">
       <div class="checkin-result-icon checkin-result-icon--warn" aria-hidden="true">!</div>
-      <h2 class="checkin-result-title">QR was already scanned before.</h2>
+      <h2 class="checkin-result-title">User already marked as present</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
@@ -380,7 +399,10 @@ async function lookupBookingCode(code) {
   try {
     const result = await checkinApiCall('checkinLookup', { code, ...currentAuth });
     if (!result || !result.ok) {
-      renderLookupError('The check-in service could not process this scan.');
+      const message = result && result.error === 'busy_try_again'
+        ? 'Another scan is being processed right now -- please try again in a moment.'
+        : 'The check-in service could not process this scan.';
+      renderLookupError(message);
       return;
     }
     if (!result.found) {
@@ -389,6 +411,8 @@ async function lookupBookingCode(code) {
     }
     if (result.alreadyMarked) {
       renderAlreadyMarked(result.guest);
+    } else if (result.waitlisted) {
+      renderWaitlisted(result.guest);
     } else {
       renderMarkedPresent(result.guest);
     }
