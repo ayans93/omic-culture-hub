@@ -55,18 +55,25 @@ function checkinWait_(ms) {
 // (3 attempts total, with a short backoff) before giving up and surfacing
 // an error. "Endpoint not configured" is a permanent misconfiguration, not
 // a network blip, so it fails immediately instead of retrying.
-async function checkinApiCall(formType, extraParams, attempt) {
+async function checkinApiCall(formType, extraParams, onRetry, attempt) {
   attempt = attempt || 1;
   const MAX_ATTEMPTS = 3;
+  const startedAt = Date.now();
   try {
-    return await checkinApiCallOnce(formType, extraParams);
+    const result = await checkinApiCallOnce(formType, extraParams);
+    if (attempt > 1) {
+      console.log(`[checkin] ${formType} succeeded on attempt ${attempt}/${MAX_ATTEMPTS} (${Date.now() - startedAt}ms)`);
+    }
+    return result;
   } catch (err) {
+    console.log(`[checkin] ${formType} attempt ${attempt}/${MAX_ATTEMPTS} failed after ${Date.now() - startedAt}ms: ${(err && err.message) || err}`);
     const isPermanent = /not configured/i.test((err && err.message) || '');
     if (isPermanent || attempt >= MAX_ATTEMPTS) {
       throw err;
     }
+    if (onRetry) onRetry(attempt + 1, MAX_ATTEMPTS);
     await checkinWait_(attempt * 700);
-    return checkinApiCall(formType, extraParams, attempt + 1);
+    return checkinApiCall(formType, extraParams, onRetry, attempt + 1);
   }
 }
 
@@ -161,7 +168,14 @@ async function attemptLogin(email, password) {
   loginSubmit.textContent = 'Logging in…';
 
   try {
-    const result = await checkinApiCall('checkinLogin', { email, password });
+    const result = await checkinApiCall('checkinLogin', { email, password }, (nextAttempt, maxAttempts) => {
+      // Lets the admin see that a retry is happening (vs. one long, silent
+      // wait), so a slow login reads as "still working, retrying" instead
+      // of "stuck" -- this was added specifically to help tell apart a
+      // single slow-but-successful Apps Script call from several
+      // fast-failing attempts in a row.
+      loginSubmit.textContent = `Logging in… (attempt ${nextAttempt} of ${maxAttempts})`;
+    });
     if (result && result.ok) {
       currentAuth = { email, password };
       setStoredAuth(email, password);
