@@ -1,8 +1,7 @@
 // This app has its own, separate Google Apps Script deployment -- it does
-// NOT share the one used by the main omic.spot site. Create a new Apps
-// Script project (e.g. from Extensions > Apps Script inside the "Final
-// List" Google Sheet, so it already has access to that sheet), paste in
-// google-apps-script/Code.gs from this same folder, deploy it as a Web App
-// ("Execute as: Me", "Who has access: Anyone"), and paste the resulting
-// /exec URL below.
-export const CHECKIN_ENDPOINT = "PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE";
+// NOT share the one used by the main omic.spot site. See
+// google-apps-script/Code.gs in this same folder for the backend source;
+// to ship an update to it, paste the change into that Apps Script project
+// and use Deploy > Manage deployments > Edit > New version so this same
+// /exec URL keeps serving the updated code.
+export const CHECKIN_ENDPOINT = "https://script.google.com/macros/s/AKfycbzWPxV64YV8V-laMswUjpF9xw0X4Y1gmLI-qzs9HUJjfDuk-GunefxWNIlaljdxNi99/exec";
