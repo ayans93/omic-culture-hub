@@ -507,13 +507,13 @@ function renderGuestRows(guests) {
           <td class="checkin-table__check">
             <input type="checkbox" class="guest-row-checkbox" data-row="${guest.row}" ${guest.checkedIn ? 'disabled' : ''} />
           </td>
-          <td>${escapeHtml(guest.name || '—')}</td>
-          <td>${escapeHtml(guest.phone || '—')}</td>
-          <td>${escapeHtml(guest.email || '—')}</td>
-          <td>${escapeHtml(String(guest.guests || '—'))}</td>
-          <td>${escapeHtml(guest.status || '—')}</td>
-          <td>${escapeHtml(guest.userType || '—')}</td>
-          <td><span class="${checkedInClass}">${checkedInLabel}</span></td>
+          <td data-label="Name">${escapeHtml(guest.name || '—')}</td>
+          <td data-label="Phone">${escapeHtml(guest.phone || '—')}</td>
+          <td data-label="Email">${escapeHtml(guest.email || '—')}</td>
+          <td data-label="Guests">${escapeHtml(String(guest.guests || '—'))}</td>
+          <td data-label="Status">${escapeHtml(guest.status || '—')}</td>
+          <td data-label="User Type">${escapeHtml(guest.userType || '—')}</td>
+          <td data-label="Check-in"><span class="${checkedInClass}">${checkedInLabel}</span></td>
         </tr>
       `;
     })

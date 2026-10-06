@@ -460,10 +460,15 @@ a {
 .checkin-main {
   flex: 1;
   width: 100%;
-  max-width: 720px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
+
+/* The login card, scanner and result cards each cap their own width and
+   stay centered (see .checkin-login__card, .checkin-camera-view,
+   .checkin-result-card below), so widening .checkin-main above to fit the
+   Guest List table on large screens doesn't change how those views look. */
 
 /* Login view */
 .checkin-login {
@@ -770,7 +775,10 @@ a {
 }
 
 .checkin-table-wrap {
-  overflow-x: auto;
+  /* No horizontal scrollbar -- the table below uses a fixed layout with
+     percentage-width columns and wraps long cell content instead, so it
+     always fits within this wrapper's width. A long guest list just grows
+     taller (normal page vertical scrolling), never wider. */
   border: 1px solid var(--cream-line);
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
@@ -778,6 +786,7 @@ a {
 
 .checkin-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13.5px;
 }
@@ -786,9 +795,25 @@ a {
 .checkin-table td {
   padding: 10px 12px;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   border-bottom: 1px solid var(--cream-line);
 }
+
+.checkin-table th:nth-child(2),
+.checkin-table td:nth-child(2) { width: 18%; }   /* Name */
+.checkin-table th:nth-child(3),
+.checkin-table td:nth-child(3) { width: 13%; }   /* Phone */
+.checkin-table th:nth-child(4),
+.checkin-table td:nth-child(4) { width: 22%; }   /* Email */
+.checkin-table th:nth-child(5),
+.checkin-table td:nth-child(5) { width: 8%; }    /* Guests */
+.checkin-table th:nth-child(6),
+.checkin-table td:nth-child(6) { width: 10%; }   /* Status */
+.checkin-table th:nth-child(7),
+.checkin-table td:nth-child(7) { width: 15%; }   /* User Type */
+.checkin-table th:nth-child(8),
+.checkin-table td:nth-child(8) { width: 14%; }   /* Check-in */
 
 .checkin-table th {
   background: #fdfbf7;
@@ -883,5 +908,78 @@ a {
 
   .checkin-detail-row strong {
     text-align: left;
+  }
+}
+
+/* Guest List table on narrow screens: a fixed-layout table with 8 columns
+   has no room to breathe on a phone, so below this width each row becomes
+   a small stacked card instead (each cell labelled via its data-label
+   attribute, set in checkin.js). Still no horizontal scroll -- just a
+   taller, vertically-scrolling list, same as the desktop table. */
+@media (max-width: 700px) {
+  .checkin-table thead {
+    display: none;
+  }
+
+  .checkin-table,
+  .checkin-table tbody,
+  .checkin-table tr,
+  .checkin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  /* The desktop column percentage-widths (.checkin-table td:nth-child(N)
+     above) are MORE specific than the block/width:100% rule just above, so
+     without this they'd still win here and squeeze each stacked value down
+     to e.g. 13% of the row's width. Same specificity + declared later wins
+     the cascade, so this resets every column back to full width. */
+  .checkin-table th:nth-child(n),
+  .checkin-table td:nth-child(n) {
+    width: 100%;
+  }
+
+  .checkin-table tr {
+    position: relative;
+    padding: 14px 46px 14px 14px;
+    border-bottom: 1px solid var(--cream-line);
+  }
+
+  .checkin-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .checkin-table td {
+    padding: 4px 0;
+    border-bottom: none;
+    font-size: 13.5px;
+  }
+
+  .checkin-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    margin-bottom: 1px;
+  }
+
+  .checkin-table td:first-child {
+    position: absolute;
+    top: 14px;
+    right: 10px;
+    padding: 0;
+  }
+
+  .checkin-table td[data-label="Name"] {
+    font-family: var(--font-display);
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .checkin-table td[data-label="Name"]::before {
+    content: none;
   }
 }
