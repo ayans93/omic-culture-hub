@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Shared Ground | Jury Review</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-topbar">
+      <p class="app-topbar__title">Shared Ground — Jury Review</p>
+      <span class="app-topbar__name" id="jurorName"></span>
+      <button type="button" id="reviewVotesBtn" class="btn btn--secondary">Review My Votes</button>
+      <button type="button" id="logoutBtn" class="btn btn--secondary">Log out</button>
+    </header>
+
+    <main class="app-main">
+
+      <!-- QUEUE / VOTING SCREEN -->
+      <section id="queueScreen">
+        <div class="progress-bar"><div class="progress-bar__fill" id="progressFill"></div></div>
+        <p class="progress-label" id="progressLabel"></p>
+
+        <div id="queueContent"></div>
+      </section>
+
+      <!-- REVIEW MY VOTES SCREEN -->
+      <section id="myVotesScreen" hidden>
+        <div class="toolbar">
+          <h2>My Votes</h2>
+          <button type="button" id="backToQueueBtn" class="btn btn--secondary">Back to Review</button>
+        </div>
+        <div id="finalizeBannerWrap"></div>
+        <div class="review-columns">
+          <div class="review-column">
+            <h3>Keep</h3>
+            <div id="keepList"></div>
+          </div>
+          <div class="review-column">
+            <h3>Skip</h3>
+            <div id="skipList"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Zoom overlay -->
+  <div class="zoom-overlay" id="zoomOverlay" hidden>
+    <button type="button" class="zoom-close" id="zoomCloseBtn" aria-label="Close zoom">&times;</button>
+    <img id="zoomImage" src="" alt="" />
+    <div class="zoom-controls">
+      <button type="button" id="zoomOutBtn" aria-label="Zoom out">&minus;</button>
+      <button type="button" id="zoomResetBtn" aria-label="Reset zoom">&#8634;</button>
+      <button type="button" id="zoomInBtn" aria-label="Zoom in">+</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/juror.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Shared Ground | Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-topbar">
+      <p class="app-topbar__title">Shared Ground — Admin Dashboard</p>
+      <span class="app-topbar__name" id="adminName"></span>
+      <button type="button" id="logoutBtn" class="btn btn--secondary">Log out</button>
+    </header>
+
+    <main class="app-main">
+
+      <div class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab is-active" id="tabBtnOverview" data-tab="overview">Overview</button>
+        <button type="button" class="admin-tab" id="tabBtnResults" data-tab="results">Results &amp; Top 20</button>
+        <button type="button" class="admin-tab" id="tabBtnSubmissions" data-tab="submissions">Submissions</button>
+        <button type="button" class="admin-tab" id="tabBtnJurors" data-tab="jurors">Jurors</button>
+      </div>
+
+      <div class="admin-panel" id="panelOverview"></div>
+
+      <div class="admin-panel" id="panelResults" hidden>
+        <div class="toolbar">
+          <h2>Results &amp; Top 20</h2>
+          <a id="exportCsvLink" class="btn btn--primary" href="#" target="_blank" rel="noopener">Export CSV</a>
+        </div>
+        <div id="tieBannerWrap"></div>
+        <div id="resultsTableWrap"></div>
+      </div>
+
+      <div class="admin-panel" id="panelSubmissions" hidden>
+        <div class="toolbar"><h2>Submissions</h2></div>
+        <div id="submissionsTableWrap"></div>
+      </div>
+
+      <div class="admin-panel" id="panelJurors" hidden>
+        <div class="toolbar"><h2>Jurors</h2></div>
+        <div id="jurorsTableWrap"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>
