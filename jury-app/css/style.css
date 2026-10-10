@@ -28,6 +28,53 @@ body {
   background-color: var(--cream);
   color: var(--ink);
   min-height: 100vh;
+  /* The last four layers each draw a quarter-circle at one corner of the
+     tile; tiled edge-to-edge, the four corner-quarters from neighboring
+     tiles meet up into full, overlapping rings — the interlocking-circles
+     texture used across the OMIC site and check-in app. */
+  background-image:
+    radial-gradient(640px circle at 6% 0%, rgba(74, 111, 232, 0.20), transparent 60%),
+    radial-gradient(560px circle at 96% 6%, rgba(221, 122, 59, 0.18), transparent 60%),
+    radial-gradient(680px circle at 88% 55%, rgba(198, 168, 234, 0.22), transparent 60%),
+    radial-gradient(560px circle at 4% 68%, rgba(63, 174, 82, 0.16), transparent 60%),
+    radial-gradient(circle at 0 0, transparent 44px, rgba(23, 20, 15, 0.08) 44px, rgba(23, 20, 15, 0.08) 45.4px, transparent 45.4px),
+    radial-gradient(circle at 100% 0, transparent 44px, rgba(23, 20, 15, 0.08) 44px, rgba(23, 20, 15, 0.08) 45.4px, transparent 45.4px),
+    radial-gradient(circle at 0 100%, transparent 44px, rgba(23, 20, 15, 0.08) 44px, rgba(23, 20, 15, 0.08) 45.4px, transparent 45.4px),
+    radial-gradient(circle at 100% 100%, transparent 44px, rgba(23, 20, 15, 0.08) 44px, rgba(23, 20, 15, 0.08) 45.4px, transparent 45.4px);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat;
+  background-attachment: fixed, fixed, fixed, fixed, scroll, scroll, scroll, scroll;
+  background-size: auto, auto, auto, auto, 64px 64px, 64px 64px, 64px 64px, 64px 64px;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+
+/* Logo mark (OMIC circular wordmark, shared with the main site + check-in app) */
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.logo-mark__circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  border: 2px solid #fdfbf7;
+  margin-left: -11px;
+}
+.logo-mark__circle:first-child { margin-left: 0; }
+.logo-mark--small .logo-mark__circle {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
 }
 
 .btn {
@@ -95,6 +142,11 @@ body {
   width: 100%;
   box-shadow: 0 4px 18px rgba(23, 20, 15, 0.06);
   text-align: center;
+}
+.login-card__logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
 }
 .login-card__title {
   margin: 0 0 4px;
