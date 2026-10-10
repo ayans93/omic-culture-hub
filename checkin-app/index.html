@@ -77,6 +77,21 @@
               </svg>
             </button>
             <p class="checkin-scanner-idle__hint">Tap to scan a guest's QR code</p>
+
+            <div class="checkin-stats" id="checkinStats" aria-live="polite">
+              <div class="checkin-stat checkin-stat--website">
+                <span class="checkin-stat__value" id="statWebsiteCount">—</span>
+                <span class="checkin-stat__label">Website registrations checked in</span>
+              </div>
+              <div class="checkin-stat checkin-stat--guest">
+                <span class="checkin-stat__value" id="statGuestCount">—</span>
+                <span class="checkin-stat__label">Guests checked in</span>
+              </div>
+              <div class="checkin-stat checkin-stat--total">
+                <span class="checkin-stat__value" id="statTotalCount">—</span>
+                <span class="checkin-stat__label">Total checked in</span>
+              </div>
+            </div>
           </div>
 
           <div id="scannerCameraWrap" class="checkin-camera-wrap" hidden>

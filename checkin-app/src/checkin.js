@@ -128,6 +128,9 @@ const panelGuestList = document.getElementById('panelGuestList');
 
 const scannerIdle = document.getElementById('scannerIdle');
 const openScannerBtn = document.getElementById('openScannerBtn');
+const statWebsiteCount = document.getElementById('statWebsiteCount');
+const statGuestCount = document.getElementById('statGuestCount');
+const statTotalCount = document.getElementById('statTotalCount');
 const scannerCameraWrap = document.getElementById('scannerCameraWrap');
 const scannerCameraStatus = document.getElementById('scannerCameraStatus');
 const closeScannerBtn = document.getElementById('closeScannerBtn');
@@ -159,6 +162,25 @@ function showApp() {
   loginView.hidden = true;
   appView.hidden = false;
   logoutBtn.hidden = false;
+  loadCheckinStats();
+}
+
+// Checked-in counts shown below the scanner button -- website registrations
+// vs. manually-added guests, per the "Final List" sheet's User Type column.
+// Best-effort: a failed load just leaves the previous numbers (or the "—"
+// placeholder) in place rather than interrupting the scanner with an error.
+async function loadCheckinStats() {
+  if (!currentAuth) return;
+  try {
+    const result = await checkinApiCall('checkinStats', { ...currentAuth });
+    if (result && result.ok) {
+      statWebsiteCount.textContent = result.websiteCheckedIn;
+      statGuestCount.textContent = result.guestCheckedIn;
+      statTotalCount.textContent = result.totalCheckedIn;
+    }
+  } catch (err) {
+    // ignore -- see comment above
+  }
 }
 
 async function attemptLogin(email, password) {
@@ -262,7 +284,12 @@ function setActiveTab(tab) {
   }
 }
 
-tabBtnScanner.addEventListener('click', () => setActiveTab('scanner'));
+tabBtnScanner.addEventListener('click', () => {
+  setActiveTab('scanner');
+  // Picks up any bulk marks made from the Guest List tab since this tab was
+  // last shown, so the counts never go stale while switching back and forth.
+  loadCheckinStats();
+});
 tabBtnGuestList.addEventListener('click', () => setActiveTab('guestlist'));
 
 // ---------------------------------------------------------------------------
@@ -455,6 +482,7 @@ async function lookupBookingCode(code) {
       renderWaitlisted(result.guest);
     } else {
       renderMarkedPresent(result.guest);
+      loadCheckinStats();
     }
   } catch (err) {
     renderLookupError(err.message || 'Could not reach the check-in service.');
@@ -605,6 +633,7 @@ confirmMarkYes.addEventListener('click', async () => {
   confirmMarkYes.textContent = 'Yes';
   confirmMarkModal.hidden = true;
   runGuestSearch();
+  loadCheckinStats();
 });
 
 // ---------------------------------------------------------------------------

@@ -253,6 +253,50 @@ function handleCheckinBulkMark_(params) {
   }
 }
 
+// Scanner tab (post-login home): counts of already-checked-in rows, split
+// by the "Final List" sheet's User Type column ("Website" for an online
+// registration, "Guest" for a manually-added plus-one/walk-in). Any row
+// whose User Type is blank or doesn't say "Guest" is counted as a website
+// registration, so the two numbers always add up to the same total the
+// Guest List tab would show as "Checked in" -- a typo'd User Type value
+// just lands on the website side instead of silently vanishing from both
+// counts.
+function handleCheckinStats_(params) {
+  if (!checkinAuthOk_(params)) {
+    return checkinRespond_({ ok: false, error: 'unauthorized' }, params);
+  }
+
+  var sheet = SpreadsheetApp.openById(CHECKIN_SHEET_ID).getSheetByName(CHECKIN_SHEET_TAB_NAME);
+  if (!sheet) {
+    return checkinRespond_({ ok: false, error: 'sheet_unavailable' }, params);
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var websiteCheckedIn = 0;
+  var guestCheckedIn = 0;
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    // Skip fully blank rows, same rule as handleCheckinList_.
+    if (!row[CHECKIN_COL.NAME - 1] && !row[CHECKIN_COL.STATUS - 1]) continue;
+    if (row[CHECKIN_COL.CHECKED_IN - 1] !== true) continue;
+
+    var userType = String(row[CHECKIN_COL.USER_TYPE - 1] || '').trim().toLowerCase();
+    if (userType === 'guest') {
+      guestCheckedIn++;
+    } else {
+      websiteCheckedIn++;
+    }
+  }
+
+  return checkinRespond_({
+    ok: true,
+    websiteCheckedIn: websiteCheckedIn,
+    guestCheckedIn: guestCheckedIn,
+    totalCheckedIn: websiteCheckedIn + guestCheckedIn,
+  }, params);
+}
+
 // Lets you sanity-check the deployment by opening the Web App URL directly
 // in a browser (a plain GET with no formType).
 function doGet(e) {
@@ -272,6 +316,10 @@ function doGet(e) {
 
   if (params.formType === 'checkinBulkMark') {
     return handleCheckinBulkMark_(params);
+  }
+
+  if (params.formType === 'checkinStats') {
+    return handleCheckinStats_(params);
   }
 
   return ContentService
