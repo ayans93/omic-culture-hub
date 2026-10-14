@@ -97,7 +97,7 @@ async function loadResults() {
     if (tieFlag) {
       tieWrap.innerHTML = `
         <div class="tie-banner">
-          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at ${tieFlag.keepCount} Keep votes
+          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at ${tieFlag.loveCount} Love votes
           spanning ranks ${Math.min(...tieFlag.ranks)}–${Math.max(...tieFlag.ranks)}. This needs a manual decision — it is not resolved automatically.
         </div>
       `;
@@ -111,7 +111,7 @@ async function loadResults() {
         <table class="data-table">
           <thead>
             <tr>
-              <th>Rank</th><th>ID</th><th>Title</th>${jurorCols}<th>Keep</th><th>Skip</th>
+              <th>Rank</th><th>ID</th><th>Title</th>${jurorCols}<th>Love</th><th>Skip</th>
             </tr>
           </thead>
           <tbody>
@@ -121,7 +121,7 @@ async function loadResults() {
                 const jurorCells = jurors
                   .map((j) => {
                     const v = r.byJuror[j.id];
-                    const label = v === 'keep' ? 'Keep' : v === 'skip' ? 'Skip' : '—';
+                    const label = v === 'love' ? 'Love' : v === 'skip' ? 'Skip' : '—';
                     return `<td data-label="${escapeHtml(j.name)}">${label}</td>`;
                   })
                   .join('');
@@ -131,7 +131,7 @@ async function loadResults() {
                     <td data-label="ID">${escapeHtml(r.id)}</td>
                     <td data-label="Title">${escapeHtml(r.title || '—')}</td>
                     ${jurorCells}
-                    <td data-label="Keep">${r.keepCount}</td>
+                    <td data-label="Love">${r.loveCount}</td>
                     <td data-label="Skip">${r.skipCount}</td>
                   </tr>
                 `;
@@ -163,13 +163,13 @@ async function loadSubmissions() {
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>ID</th><th>Artist</th><th>Title</th><th>Medium</th><th>Year</th><th>Eligible</th><th>Reviews</th><th>Keep</th><th>Skip</th><th>Rank</th></tr>
+            <tr><th>ID</th><th>Artist</th><th>Title</th><th>Medium</th><th>Year</th><th>Eligible</th><th>Reviews</th><th>Love</th><th>Skip</th><th>Comments</th><th>Rank</th></tr>
           </thead>
           <tbody>
             ${result.submissions
               .map(
                 (s) => `
-                  <tr class="${s.inTop20 ? 'is-top20' : ''}">
+                  <tr class="${s.inTop20 ? 'is-top20' : ''} submission-row" data-id="${escapeHtml(s.id)}">
                     <td data-label="ID">${escapeHtml(s.id)}</td>
                     <td data-label="Artist">${escapeHtml(s.artistName || '—')}</td>
                     <td data-label="Title">${escapeHtml(s.title || '—')}</td>
@@ -177,8 +177,9 @@ async function loadSubmissions() {
                     <td data-label="Year">${escapeHtml(s.year || '—')}</td>
                     <td data-label="Eligible">${s.eligible ? 'Yes' : 'No'}</td>
                     <td data-label="Reviews">${s.reviewsCompleted}</td>
-                    <td data-label="Keep">${s.keepCount}</td>
+                    <td data-label="Love">${s.loveCount}</td>
                     <td data-label="Skip">${s.skipCount}</td>
+                    <td data-label="Comments">${s.commentCount > 0 ? `<span class="pill pill--open">${s.commentCount}</span>` : '—'}</td>
                     <td data-label="Rank">${s.rank || '—'}</td>
                   </tr>
                 `
@@ -187,10 +188,77 @@ async function loadSubmissions() {
           </tbody>
         </table>
       </div>
-      <p class="empty-state" style="padding:8px 0;text-align:left">To add or change submissions, edit the Submissions tab in the Jury Sheet directly.</p>
+      <p class="empty-state" style="padding:8px 0;text-align:left">Click any row to see the full artwork, its votes, and any juror comments. To add or change submissions, edit the Submissions tab in the Jury Sheet directly.</p>
     `;
+    wrap.querySelectorAll('.submission-row').forEach((row) => {
+      row.addEventListener('click', () => openSubmissionModal(row.dataset.id));
+    });
   } catch (err) {
     wrap.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load submissions.')}</p>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Submission detail modal
+
+const submissionModal = document.getElementById('submissionModal');
+const submissionModalContent = document.getElementById('submissionModalContent');
+const submissionModalCloseBtn = document.getElementById('submissionModalCloseBtn');
+
+function closeSubmissionModal() {
+  submissionModal.hidden = true;
+  submissionModalContent.innerHTML = '';
+}
+submissionModalCloseBtn.addEventListener('click', closeSubmissionModal);
+submissionModal.addEventListener('click', (event) => {
+  if (event.target === submissionModal) closeSubmissionModal();
+});
+
+async function openSubmissionModal(id) {
+  submissionModal.hidden = false;
+  submissionModalContent.innerHTML = '<p class="empty-state">Loading…</p>';
+  try {
+    const result = await juryApiCall('adminSubmissionDetail', { ...auth, id });
+    if (!result || !result.ok) {
+      submissionModalContent.innerHTML = `<p class="empty-state">${escapeHtml((result && result.error) || 'Could not load this submission.')}</p>`;
+      return;
+    }
+    const { submission, votes } = result;
+    const image = submission.image;
+    const imageHtml = image
+      ? (image.type === 'image'
+          ? `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(submission.title || '')}" class="modal-card__image" />`
+          : `<a href="${escapeHtml(image.url)}" target="_blank" rel="noopener" class="artwork-file-link">Open submission file</a>`)
+      : '<div class="artwork-image-wrap artwork-image-wrap--empty"><p>Image not available yet</p></div>';
+
+    submissionModalContent.innerHTML = `
+      ${imageHtml}
+      <h2 class="detail-pane__title">${escapeHtml(submission.title || 'Untitled')}</h2>
+      <p class="detail-pane__meta">${escapeHtml(submission.discipline || '—')} · ${escapeHtml(submission.medium || '—')} · ${escapeHtml(submission.dimensions || '—')} · ${escapeHtml(submission.year || '—')}</p>
+      <p class="detail-pane__meta">Artist: ${escapeHtml(submission.artistName || '—')} &nbsp;·&nbsp; ${escapeHtml(submission.mobile || '—')} &nbsp;·&nbsp; ${escapeHtml(submission.email || '—')}</p>
+      <div class="detail-pane__statement">${escapeHtml(submission.statement || 'No artist statement provided.')}</div>
+      <h3 class="side-panel__heading" style="margin-top:20px">Juror votes &amp; comments</h3>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Juror</th><th>Vote</th><th>Comment</th></tr></thead>
+          <tbody>
+            ${votes
+              .map(
+                (v) => `
+                  <tr>
+                    <td data-label="Juror">${escapeHtml(v.jurorName)}</td>
+                    <td data-label="Vote">${v.vote === 'love' ? 'Love' : v.vote === 'skip' ? 'Skip' : '—'}</td>
+                    <td data-label="Comment">${v.comment ? escapeHtml(v.comment) : '—'}</td>
+                  </tr>
+                `
+              )
+              .join('') || '<tr><td colspan="3" data-label="">No votes yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    submissionModalContent.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load this submission.')}</p>`;
   }
 }
 
@@ -210,7 +278,7 @@ async function loadJurors() {
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Name</th><th>Username</th><th>Progress</th><th>Keep</th><th>Skip</th><th>Status</th><th></th></tr>
+            <tr><th>Name</th><th>Username</th><th>Progress</th><th>Love</th><th>Skip</th><th>Status</th><th></th></tr>
           </thead>
           <tbody>
             ${result.jurors
@@ -220,7 +288,7 @@ async function loadJurors() {
                     <td data-label="Name">${escapeHtml(j.name)}</td>
                     <td data-label="Username">${escapeHtml(j.username)}</td>
                     <td data-label="Progress">${j.reviewsCompleted} / ${j.reviewsRequired}</td>
-                    <td data-label="Keep">${j.keepCount}</td>
+                    <td data-label="Love">${j.loveCount}</td>
                     <td data-label="Skip">${j.skipCount}</td>
                     <td data-label="Status">${j.finalized ? '<span class="pill pill--locked">Finalized</span>' : '<span class="pill pill--open">In progress</span>'}</td>
                     <td data-label="">${j.finalized ? '<button type="button" class="btn btn--secondary unlock-btn">Unlock</button>' : ''}</td>

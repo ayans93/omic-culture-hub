@@ -21,38 +21,28 @@
       </a>
       <p class="app-topbar__title">Shared Ground — Jury Review</p>
       <span class="app-topbar__name" id="jurorName"></span>
-      <button type="button" id="reviewVotesBtn" class="btn btn--secondary">Review My Votes</button>
       <button type="button" id="logoutBtn" class="btn btn--secondary">Log out</button>
     </header>
 
     <main class="app-main">
 
-      <!-- QUEUE / VOTING SCREEN -->
-      <section id="queueScreen">
-        <div class="progress-bar"><div class="progress-bar__fill" id="progressFill"></div></div>
-        <p class="progress-label" id="progressLabel"></p>
+      <div id="statusBarWrap"></div>
 
-        <div id="queueContent"></div>
-      </section>
+      <div class="juror-tabs" role="tablist">
+        <button type="button" class="juror-tab is-active" id="tabBtnPending" data-tab="pending">
+          Yet to Evaluate <span class="juror-tab__count" id="countPending">—</span>
+        </button>
+        <button type="button" class="juror-tab" id="tabBtnLoved" data-tab="loved">
+          Loved <span class="juror-tab__count" id="countLoved">—</span>
+        </button>
+        <button type="button" class="juror-tab" id="tabBtnSkipped" data-tab="skipped">
+          Skipped <span class="juror-tab__count" id="countSkipped">—</span>
+        </button>
+      </div>
 
-      <!-- REVIEW MY VOTES SCREEN -->
-      <section id="myVotesScreen" hidden>
-        <div class="toolbar">
-          <h2>My Votes</h2>
-          <button type="button" id="backToQueueBtn" class="btn btn--secondary">Back to Review</button>
-        </div>
-        <div id="finalizeBannerWrap"></div>
-        <div class="review-columns">
-          <div class="review-column">
-            <h3>Keep</h3>
-            <div id="keepList"></div>
-          </div>
-          <div class="review-column">
-            <h3>Skip</h3>
-            <div id="skipList"></div>
-          </div>
-        </div>
-      </section>
+      <section class="juror-panel" id="panelPending"></section>
+      <section class="juror-panel" id="panelLoved" hidden></section>
+      <section class="juror-panel" id="panelSkipped" hidden></section>
 
     </main>
   </div>
