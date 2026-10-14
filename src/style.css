@@ -542,6 +542,19 @@ a {
   font-weight: 600;
 }
 
+/* Highlights a single meta-card, e.g. the price on an event page, with a
+   tinted background and a bolder value so it stands out from the rest of
+   the grid. The tint color is picked per-use via an inline custom property
+   (--meta-card-tint) to match whichever dot color sits next to it. */
+.meta-card--highlight {
+  background: var(--meta-card-tint, var(--green-tint));
+  border-color: transparent;
+}
+
+.meta-card--highlight .meta-card__value {
+  font-weight: 800;
+}
+
 .prose p {
   font-size: 15.5px;
   color: #37332b;
