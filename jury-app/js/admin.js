@@ -1,4 +1,4 @@
-import { juryApiCall, requireAuth, clearStoredAuth, escapeHtml, buildExportUrl } from './api.js';
+import { juryApiCall, requireAuth, clearStoredAuth, escapeHtml, downloadAdminExportCsv } from './api.js';
 
 const auth = requireAuth('admin');
 
@@ -14,7 +14,20 @@ const tabs = {
 
 if (auth) {
   adminName.textContent = auth.name || auth.username;
-  document.getElementById('exportCsvLink').href = buildExportUrl(auth);
+  const exportBtn = document.getElementById('exportCsvLink');
+  exportBtn.addEventListener('click', async (event) => {
+    event.preventDefault();
+    const original = exportBtn.textContent;
+    exportBtn.textContent = 'Exporting…';
+    const tieWrap = document.getElementById('tieBannerWrap');
+    try {
+      await downloadAdminExportCsv(auth);
+    } catch (err) {
+      if (tieWrap) tieWrap.insertAdjacentHTML('afterbegin', `<p class="empty-state">${escapeHtml(err.message || 'Could not export results.')}</p>`);
+    } finally {
+      exportBtn.textContent = original;
+    }
+  });
 }
 
 logoutBtn.addEventListener('click', () => {

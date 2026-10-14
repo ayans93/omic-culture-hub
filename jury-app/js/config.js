@@ -1,7 +1,9 @@
-// This app has its own, separate Google Apps Script deployment -- it does
-// NOT share the one used by the main omic.spot site or the door check-in
-// app. See google-apps-script/Code.gs in this same folder for the backend
-// source; to ship an update to it, paste the change into that Apps Script
-// project and use Deploy > Manage deployments > Edit > New version so this
-// same /exec URL keeps serving the updated code.
-export const JURY_ENDPOINT = "https://script.google.com/macros/s/AKfycbzfkIpQ1DZgAER5K7zDgDXoD2trkgmocWn5Pw2KniRgdindcyt_jQCAB1EQwFgsgfU1yw/exec";
+// This app's backend moved from a Google Apps Script Web App to a real
+// Supabase (Postgres) project -- see jury-app/supabase/01_schema_and_functions.sql
+// for the schema + RPC functions these values talk to.
+export const SUPABASE_URL = "https://ckbbzxormgfgaqbgojxb.supabase.co";
+// This is the "anon" / "publishable" key -- it's meant to be used from the
+// browser. It has no access to any table directly (RLS blocks that); it
+// can only call the specific jury_* functions granted to it in the SQL
+// file above, same trust boundary the old Apps Script setup had.
+export const SUPABASE_ANON_KEY = "sb_publishable_AI_EcLfJehEoL3ZmGDBjjQ_ruQpVwGk";

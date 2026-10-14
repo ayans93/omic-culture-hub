@@ -253,14 +253,39 @@ function juryGetSubmission_(id) {
 
 // --- Artwork image resolution (Drive folder lookup, cached) -------------
 //
-// "Art Link" in the sheet is only ever a bare filename. The ImageCache tab
-// (created automatically the first time it's needed) remembers filename ->
-// {fileId, mimeType} so a repeat view of the same artwork is a cheap sheet
-// lookup instead of another Drive folder scan. The first time a file is
-// resolved, it's also set to "Anyone with the link can view" if it isn't
-// already -- otherwise a plain <img>/<a> pointed at it would hit a Google
-// sign-in wall for jurors, who aren't signed into this app with a Google
-// account at all.
+// "Art Link" in the sheet is usually a bare filename to look up inside
+// JURY_IMAGES_FOLDER_ID -- but a batch of later submissions have a full
+// Drive share URL (or occasionally a bare Drive file ID) in that column
+// instead, e.g. "https://drive.google.com/file/d/FILE_ID/view?usp=drivesdk".
+// juryExtractDriveFileId_ detects that case and goes straight to the file
+// by ID rather than searching the images folder by name, since a URL will
+// never match a filename there. The ImageCache tab (created automatically
+// the first time it's needed) remembers artLink -> {fileId, mimeType} so a
+// repeat view of the same artwork is a cheap sheet lookup instead of
+// another Drive lookup. The first time a file is resolved, it's also set
+// to "Anyone with the link can view" if it isn't already -- otherwise a
+// plain <img>/<a> pointed at it would hit a Google sign-in wall for
+// jurors, who aren't signed into this app with a Google account at all.
+
+// Pulls a Drive file ID out of a full share URL ("file/d/ID", "?id=ID")
+// or recognizes a bare Drive file ID pasted with no URL around it at all.
+// Returns null when none of those shapes match, so the caller falls back
+// to treating the value as a plain filename.
+function juryExtractDriveFileId_(value) {
+  var v = String(value || '').trim();
+  if (!v) return null;
+
+  var m = v.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m) return m[1];
+
+  m = v.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m) return m[1];
+
+  if (/^[a-zA-Z0-9_-]{25,}$/.test(v)) return v;
+
+  return null;
+}
+
 function juryImageCacheSheet_() {
   var ss = SpreadsheetApp.openById(JURY_SHEET_ID);
   var sheet = ss.getSheetByName(JURY_TAB_IMAGE_CACHE);
@@ -290,10 +315,23 @@ function juryResolveArtworkFile_(filename) {
     return null;
   }
 
-  var folder = DriveApp.getFolderById(JURY_IMAGES_FOLDER_ID);
-  var files = folder.getFilesByName(name);
-  if (!files.hasNext()) return null;
-  var file = files.next();
+  var file = null;
+
+  var driveId = juryExtractDriveFileId_(name);
+  if (driveId) {
+    try {
+      file = DriveApp.getFileById(driveId);
+    } catch (idErr) {
+      file = null; // looked like a Drive ID but isn't accessible/doesn't exist
+    }
+  }
+
+  if (!file) {
+    var folder = DriveApp.getFolderById(JURY_IMAGES_FOLDER_ID);
+    var files = folder.getFilesByName(name);
+    if (!files.hasNext()) return null;
+    file = files.next();
+  }
 
   try {
     if (file.getSharingAccess() !== DriveApp.Access.ANYONE_WITH_LINK) {
@@ -827,6 +865,40 @@ function handleAdminExportCsv_(params) {
     lines.push(line.join(','));
   });
   return ContentService.createTextOutput(lines.join('\n')).setMimeType(ContentService.MimeType.CSV);
+}
+
+// One-time utility -- NOT wired into doGet, never reachable over the web.
+// Walks every submission and resolves+caches its Drive image via the same
+// juryArtworkImage_/juryResolveArtworkFile_ logic the live app already
+// uses (sharing each file "Anyone with the link" and recording filename ->
+// {fileId, mimeType} in the ImageCache tab along the way), so ImageCache
+// ends up fully populated in one pass instead of only as jurors happen to
+// view each piece. Run this manually from the Apps Script editor: pick
+// "resolveAllImages_" from the function dropdown next to the Run button,
+// click Run, approve the permission prompt if asked, then check View >
+// Logs (or Executions) for the summary line.
+//
+// Deliberately named WITHOUT a trailing underscore (unlike every other
+// helper in this file) -- Apps Script's editor hides underscore-suffixed
+// functions from the "Select function to run" dropdown, treating that as
+// a private-helper convention, so this one needs a plain name to be
+// selectable there at all.
+function resolveAllImages() {
+  var subs = juryListSubmissions_();
+  var resolved = 0;
+  var missing = [];
+  subs.forEach(function (sub) {
+    var img = juryArtworkImage_(sub.artLink);
+    if (img) {
+      resolved++;
+    } else {
+      missing.push(sub.id + ' (' + sub.artLink + ')');
+    }
+  });
+  Logger.log('Resolved ' + resolved + ' of ' + subs.length + ' submissions.');
+  if (missing.length) {
+    Logger.log('No matching Drive file for: ' + missing.join(', '));
+  }
 }
 
 function doGet(e) {

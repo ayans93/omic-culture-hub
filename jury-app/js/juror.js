@@ -183,7 +183,7 @@ async function loadPendingPanel() {
   try {
     const result = await juryApiCall('jurorQueue', { ...auth });
     if (!result || !result.ok) {
-      panelPending.innerHTML = '<p class="empty-state">Could not load your review queue. Please try again.</p>';
+      panelPending.innerHTML = renderRetryState('Could not load your review queue. Please try again.', loadPendingPanel);
       return;
     }
     if (result.finalized) {
@@ -198,8 +198,29 @@ async function loadPendingPanel() {
     }
     await loadPendingSubmission(nextId);
   } catch (err) {
-    panelPending.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load your review queue.')}</p>`;
+    panelPending.innerHTML = renderRetryState(err.message || 'Could not load your review queue.', loadPendingPanel);
   }
+}
+
+// A handful of submissions is a fast, lightweight read even on Apps
+// Script, but the JSONP call still crosses the network once per screen,
+// and Apps Script Web Apps occasionally return a transient error right
+// after a fresh deployment while the new version finishes propagating.
+// juryApiCall already retries each call silently up to 3 times before
+// giving up -- this is the explicit fallback for when even that isn't
+// enough, so a juror never has to reload the whole page to recover.
+function renderRetryState(message, retryFn) {
+  const id = 'retryBtn' + Math.random().toString(36).slice(2, 8);
+  setTimeout(() => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', retryFn);
+  }, 0);
+  return `
+    <div class="empty-state">
+      <p>${escapeHtml(message)}</p>
+      <button type="button" class="btn btn--secondary" id="${id}" style="margin-top:10px">Try again</button>
+    </div>
+  `;
 }
 
 async function loadPendingSubmission(id) {
@@ -207,12 +228,12 @@ async function loadPendingSubmission(id) {
   try {
     const result = await juryApiCall('jurorSubmission', { ...auth, id });
     if (!result || !result.ok) {
-      panelPending.innerHTML = '<p class="empty-state">Could not load this artwork. Please try again.</p>';
+      panelPending.innerHTML = renderRetryState('Could not load this artwork. Please try again.', () => loadPendingSubmission(id));
       return;
     }
     renderPendingSubmission(result.submission, result.myVote, result.othersVotes);
   } catch (err) {
-    panelPending.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load this artwork.')}</p>`;
+    panelPending.innerHTML = renderRetryState(err.message || 'Could not load this artwork.', () => loadPendingSubmission(id));
   }
 }
 
@@ -334,7 +355,7 @@ async function loadListPanel(key) {
   try {
     const result = latestReview && latestReview.ok ? latestReview : await juryApiCall('jurorReview', { ...auth });
     if (!result || !result.ok) {
-      panel.innerHTML = '<p class="empty-state">Could not load this list. Please try again.</p>';
+      panel.innerHTML = renderRetryState('Could not load this list. Please try again.', () => loadListPanel(key));
       return;
     }
     latestReview = result;
@@ -344,7 +365,7 @@ async function loadListPanel(key) {
     const moveTo = key === 'loved' ? 'skip' : 'love';
     renderVoteList(panel, items, moveTo, result.finalized);
   } catch (err) {
-    panel.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load this list.')}</p>`;
+    panel.innerHTML = renderRetryState(err.message || 'Could not load this list.', () => loadListPanel(key));
   }
 }
 
@@ -396,6 +417,10 @@ function renderVoteList(container, items, moveTo, finalized) {
 // ---------------------------------------------------------------------------
 // Init
 
+// setActiveTab() already calls refreshStatus() itself -- calling it again
+// here first would just fire a second, redundant jurorReview request
+// alongside the jurorQueue request setActiveTab triggers, adding avoidable
+// concurrent load on the Apps Script endpoint for no benefit.
 if (auth) {
-  refreshStatus().then(() => setActiveTab('pending'));
+  setActiveTab('pending');
 }
