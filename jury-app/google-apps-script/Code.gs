@@ -52,6 +52,18 @@ var JURY_SHEET_ID = '1mLqfbcQz2u7sGEqfbUlOZSTw3WiJARxAx9mqEKdpdo4';
 // file Google Drive can serve.
 var JURY_IMAGES_FOLDER_ID = '1TqK64NxfrUpXZe9mfCbBkjz88yGrt3oC';
 
+// Shared secret checked on doPost (see bottom of this file) -- the jury
+// app's real data now lives in Supabase, and Supabase calls back into this
+// Web App to keep this Sheet in sync with new votes/comments/juror orders
+// as a live mirror, for anyone who wants to look at the data in Sheets
+// form. Since this Web App is deployed "Who has access: Anyone" (required
+// for jurors' own doGet calls, which aren't signed into Google at all),
+// doPost is reachable at the same /exec URL by anyone who finds it -- this
+// secret is what stops a stranger from writing junk rows into the Sheet.
+// Must match the secret baked into jury_sync_to_sheet() in
+// supabase/03_sheet_sync.sql exactly. Treat it like a password.
+var JURY_SYNC_SECRET = 'RgriRYQLSgG6v8ESBKd-2LFFeXJl2qSC';
+
 var JURY_TAB_USERS = 'Users';
 var JURY_TAB_SUBMISSIONS = 'Submissions';
 var JURY_TAB_JUROR_ORDERS = 'JurorOrders';
@@ -428,6 +440,22 @@ function juryGetJurorOrder_(jurorId) {
   }
   sheet.appendRow([jurorId, ids.join(',')]);
   return ids;
+}
+
+// Overwrites (or appends) a juror's JurorOrders row with an order computed
+// elsewhere -- used by the Supabase sheet-sync (see doPost below), which
+// sends the already-final order it generated, rather than asking this
+// Sheet to compute one of its own.
+function jurySetJurorOrder_(jurorId, orderCsv) {
+  var sheet = jurySheet_(JURY_TAB_JUROR_ORDERS);
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][ORDERS_COL.JUROR_ID - 1] || '').trim() === jurorId) {
+      sheet.getRange(i + 1, ORDERS_COL.ORDER_CSV).setValue(orderCsv);
+      return;
+    }
+  }
+  sheet.appendRow([jurorId, orderCsv]);
 }
 
 // --- Votes (Love / Skip, with an optional comment) -----------------------
@@ -922,4 +950,47 @@ function doGet(e) {
   return ContentService
     .createTextOutput(JSON.stringify({ status: 'ok', message: 'Shared Ground jury endpoint is live.' }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// --- Supabase -> Sheet sync --------------------------------------------
+//
+// Now that the live app reads/writes Supabase instead of this Sheet (see
+// supabase/01_schema_and_functions.sql), this Sheet is no longer the
+// source of truth -- but it's still a handy place to glance at votes,
+// comments and juror orders without opening the Supabase dashboard. Two
+// of this file's own RPC-equivalent functions in Postgres (jury_vote and
+// jury_queue) call out to this Web App's /exec URL after they write, with
+// a small JSON body, to keep this Sheet mirroring whatever's happening
+// live. See supabase/03_sheet_sync.sql for the Postgres side.
+//
+// This is fire-and-forget from Postgres's side (wrapped in an exception
+// handler there) -- so if this Web App is ever slow, cold-starting, or
+// erroring, votes and queue generation in the live app are completely
+// unaffected. Worst case, the Sheet mirror misses one update and catches
+// up on the next one for that same juror/submission.
+function doPost(e) {
+  var body = {};
+  try {
+    body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+  } catch (parseErr) {
+    return juryRespond_({ ok: false, error: 'bad_json' }, {});
+  }
+
+  if (body.secret !== JURY_SYNC_SECRET) {
+    return juryRespond_({ ok: false, error: 'forbidden' }, {});
+  }
+
+  try {
+    if (body.type === 'vote') {
+      jurySaveVote_(String(body.jurorId || ''), String(body.submissionId || ''), String(body.vote || ''), String(body.comment || ''));
+      return juryRespond_({ ok: true }, {});
+    }
+    if (body.type === 'juror_order') {
+      jurySetJurorOrder_(String(body.jurorId || ''), String(body.orderCsv || ''));
+      return juryRespond_({ ok: true }, {});
+    }
+    return juryRespond_({ ok: false, error: 'unknown_type' }, {});
+  } catch (err) {
+    return juryRespond_({ ok: false, error: String((err && err.message) || err) }, {});
+  }
 }
