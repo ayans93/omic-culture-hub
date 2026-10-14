@@ -63,6 +63,15 @@ var ART_PRIZE_SHEET_TAB_NAME = 'Sheet1';
 var NEWTON_SHEET_ID = '1F6b2quflVCcglnJbVw4ZynmxL1u8Lt9O-h3y4d97Y1o';
 var NEWTON_SHEET_TAB_NAME = 'Sheet1';
 
+// The "Linocut Workshop Registrations" tracking spreadsheet. Same deal as
+// the other per-event sheets above: the account this script runs as needs
+// edit access to it. Its tab is named "Registrations", not after the
+// spreadsheet itself -- columns are Name, Email, Phone, Registration
+// timestamp, Paid?.
+// https://docs.google.com/spreadsheets/d/17TAjudExG1oB943qrMzxigPxaNhlyO7Y8M9BEE2T3eQ
+var LINOCUT_WORKSHOP_SHEET_ID = '17TAjudExG1oB943qrMzxigPxaNhlyO7Y8M9BEE2T3eQ';
+var LINOCUT_WORKSHOP_SHEET_TAB_NAME = 'Registrations';
+
 // Newton has 50 confirmed seats, then a 30-person waitlist (80 total)
 // before registrations close.
 var NEWTON_CONFIRMED_SEATS = 50;
@@ -130,7 +139,24 @@ function handleRegistration(params) {
 
   MailApp.sendEmail(teamEmail, subject, body);
 
-  // 2. Confirm the registration to the person who just signed up. This is
+  // 2. Log Name/Email/Phone/Timestamp to the Linocut Workshop tracking
+  // spreadsheet, for registrations on that event specifically. Best-effort,
+  // same reasoning as the Art Prize / Newton sheet logging below -- a
+  // logging failure shouldn't fail the registration itself.
+  if (eventName === 'Linocut Workshop') {
+    try {
+      appendLinocutWorkshopRegistrationToSheet_({
+        name: name,
+        email: email,
+        phone: phone,
+        timestamp: timestamp,
+      });
+    } catch (err) {
+      Logger.log('appendLinocutWorkshopRegistrationToSheet_ failed: ' + err);
+    }
+  }
+
+  // 3. Confirm the registration to the person who just signed up. This is
   // best-effort: if it fails for any reason (e.g. a malformed address that
   // slipped past client-side validation), the team notification above has
   // already gone out, so we don't want that failure to surface as an error
@@ -156,6 +182,39 @@ function handleRegistration(params) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// Writes a registration's Name/Email/Phone/Timestamp into the Linocut
+// Workshop tracking spreadsheet (tab "Registrations"). The sheet ships
+// with a block of pre-built rows that already have the "Paid?" checkbox
+// column (E) set to FALSE, waiting for the first four columns to be filled
+// in -- so this fills the first row with a blank Name instead of appending
+// after them, landing inside that template instead of past it. Falls back
+// to appending a brand new row (with Paid? defaulted to FALSE) once every
+// pre-built row has been used.
+function appendLinocutWorkshopRegistrationToSheet_(info) {
+  var sheet = SpreadsheetApp.openById(LINOCUT_WORKSHOP_SHEET_ID).getSheetByName(LINOCUT_WORKSHOP_SHEET_TAB_NAME);
+  if (!sheet) return;
+
+  var lastRow = sheet.getLastRow();
+  var targetRow = -1;
+
+  if (lastRow >= 2) {
+    var names = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < names.length; i++) {
+      if (!names[i][0]) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    sheet.appendRow([info.name, info.email, info.phone, info.timestamp, false]);
+    return;
+  }
+
+  sheet.getRange(targetRow, 1, 1, 4).setValues([[info.name, info.email, info.phone, info.timestamp]]);
+}
+
 // Sends the registrant their own "you're confirmed" email. `eventDate`,
 // `eventTime`, and `eventVenue` are optional — a page that doesn't set the
 // corresponding data-event-* attribute (see src/main.js) just gets a
@@ -168,7 +227,7 @@ function sendRegistrantConfirmation_(info) {
   var textLines = [
     'Hi ' + firstName + ',',
     '',
-    "You're all set — thanks for registering for " + info.eventName + '.',
+    'Thanks for registering for ' + info.eventName + ". We'll get in touch with you shortly.",
   ];
 
   if (hasDetails) {
@@ -237,7 +296,7 @@ function buildRegistrantConfirmationHtml_(info, firstName, hasDetails) {
     '<div style="background:#f4ede1;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;">' +
       '<div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e6dcc9;border-radius:16px;padding:32px;">' +
         '<p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#4a6fe8;">OMIC Cultural Hub</p>' +
-        '<h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:#17140f;">You’re confirmed, ' + escape(firstName) + '!</h1>' +
+        '<h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:#17140f;">We’ll get in touch with you shortly, ' + escape(firstName) + '!</h1>' +
         '<p style="margin:0 0 4px;color:#17140f;font-size:15px;line-height:1.6;">' +
           'Thanks for registering for <strong>' + escape(info.eventName) + '</strong>.' +
         '</p>' +
@@ -845,6 +904,25 @@ function test_handleArtworkSubmission() {
     fileName: '',
     fileMimeType: '',
     fileData: '',
+  });
+}
+
+// One-time helper for authorizing this script's access to the Linocut
+// Workshop sheet. Run THIS function (not handleRegistration directly --
+// same reasoning as the other test_* helpers in this file). Sends one real
+// test email to TEST_RECIPIENT_EMAIL (standing in for both the team and
+// the registrant) and fills in one row of the Linocut Workshop sheet --
+// clearly labelled "Authorization test", safe to clear afterward (clear
+// the cells rather than deleting the row, so the sheet's FALSE/Paid?
+// template stays intact).
+function test_handleLinocutWorkshopRegistration() {
+  handleRegistration({
+    origin: 'staging',
+    timestamp: new Date().toISOString(),
+    event: 'Linocut Workshop',
+    name: 'Authorization test -- clear me',
+    phone: '+971500000000',
+    email: TEST_RECIPIENT_EMAIL,
   });
 }
 
