@@ -2402,6 +2402,17 @@ a {
   line-height: 1.6;
 }
 
+.thank-you__desc:has(+ .thank-you__note) {
+  margin-bottom: 8px;
+}
+
+.thank-you__note {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 32px;
+  line-height: 1.6;
+}
+
 .thank-you__actions {
   display: flex;
   align-items: center;

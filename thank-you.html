@@ -56,6 +56,7 @@
       <p class="thank-you__desc" id="thankYouDesc">
         Your submission has been received. We'll be in touch with the details soon.
       </p>
+      <p class="thank-you__note" id="thankYouNote" hidden></p>
       <div class="thank-you__actions">
         <a class="btn btn--primary" href="events.html">Explore more events</a>
         <a class="btn btn--secondary" href="index.html">Go to homepage</a>
@@ -91,6 +92,11 @@
       } else if (eventName) {
         titleEl.textContent = 'Thank you for registering!';
         descEl.textContent = 'You’re registered for ' + eventName + '. We’ll be in touch with the details soon.';
+        var noteEl = document.getElementById('thankYouNote');
+        if (noteEl) {
+          noteEl.textContent = 'Our team will contact you shortly for the further steps.';
+          noteEl.hidden = false;
+        }
       }
     })();
   </script>
