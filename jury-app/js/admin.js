@@ -121,8 +121,8 @@ async function loadResults() {
     if (tieFlag) {
       tieWrap.innerHTML = `
         <div class="tie-banner">
-          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at the cutoff rank,
-          spanning ranks ${Math.min(...tieFlag.ranks)}–${Math.max(...tieFlag.ranks)}. This needs a manual decision — it is not resolved automatically.
+          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at rank ${tieFlag.rank},
+          straddling the cutoff. This needs a manual decision — it is not resolved automatically.
         </div>
       `;
     }

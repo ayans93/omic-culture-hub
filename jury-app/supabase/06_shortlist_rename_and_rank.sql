@@ -37,11 +37,12 @@
 --      this file does not do. The constraint stays permissive; jury_vote()
 --      is what actually enforces "no new skips" at the application layer.
 --
---   3. A comment is now required before a vote of 'love' or 'reject' can be
---      saved (both on a fresh reaction and when switching an existing vote
---      to one of those two states) -- 'save_for_later' still never needs
---      one. Enforced here in jury_vote() as a second line of defense behind
---      the same check on the frontend.
+--   3. Comments stay fully optional on every vote state (love / reject /
+--      save_for_later) -- there is no server-side or client-side
+--      requirement to add one before saving a decision. A juror can leave
+--      a comment before marking an artwork, or come back and add/edit one
+--      later from that artwork's dedicated tab (Shortlisted / Rejected /
+--      Saved for Later).
 --
 --   4. jury_blind_view() and jury_all_artworks() now also return each
 --      submission's `dimensions` (already collected at intake, but never
@@ -142,10 +143,9 @@ $$;
 grant execute on function jury_submission(text, text, text) to anon;
 
 -- ---------------------------------------------------------------------
--- 4. jury_vote -- no more 'skip' as a valid new vote; a comment is now
--- required to save a 'love' or 'reject' vote. Carries forward the
--- jury_sync_to_sheet(...) call from 03_sheet_sync.sql so the Google Sheet
--- mirror keeps working.
+-- 4. jury_vote -- no more 'skip' as a valid new vote. Comments remain
+-- fully optional on every vote. Carries forward the jury_sync_to_sheet(...)
+-- call from 03_sheet_sync.sql so the Google Sheet mirror keeps working.
 create or replace function jury_vote(p_username text, p_password text, p_submission_id text, p_vote text, p_comment text default '')
 returns jsonb
 language plpgsql security definer set search_path = public
@@ -159,9 +159,6 @@ begin
   end if;
   if p_vote not in ('love', 'reject', 'save_for_later') then
     return jsonb_build_object('ok', false, 'error', 'bad_request');
-  end if;
-  if p_vote in ('love', 'reject') and coalesce(trim(p_comment), '') = '' then
-    return jsonb_build_object('ok', false, 'error', 'Please add a comment before marking this artwork as Shortlisted or Rejected.');
   end if;
   if not exists (select 1 from submissions where id = p_submission_id) then
     return jsonb_build_object('ok', false, 'error', 'not_found');
@@ -375,7 +372,7 @@ declare
   unranked jsonb;
   tie_flag jsonb := null;
   rank20_score numeric; rank21_score numeric;
-  tied_ranks int[]; tied_ids text[];
+  tied_rank int; tied_ids text[];
 begin
   a := jury_auth(p_username, p_password, 'admin');
   if a.id is null then return jsonb_build_object('ok', false, 'error', 'unauthorized'); end if;
@@ -400,7 +397,12 @@ begin
     group by s.id, s.title, s.eligible
   ),
   ranked_cte as (
-    select *, row_number() over (order by score desc, id) as rnk
+    -- Competition ("1224") ranking: submissions tied on score share the
+    -- same rank, and the next distinct score skips ahead accordingly --
+    -- e.g. four submissions tied at the top all rank 1, and the next one
+    -- down ranks 5, not 2. RANK() (unlike ROW_NUMBER()) does this natively
+    -- as long as score is the only ORDER BY key feeding it.
+    select *, rank() over (order by score desc) as rnk
     from per_sub where eligible and reviews_completed = jcount
   )
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -408,7 +410,7 @@ begin
       'reviewsRequired', jcount, 'loveCount', love_count, 'rejectCount', reject_count,
       'savedForLaterCount', save_for_later_count,
       'byJuror', by_juror, 'rank', rnk
-    ) order by rnk), '[]'::jsonb) into ranked
+    ) order by rnk, title), '[]'::jsonb) into ranked
   from ranked_cte;
 
   with per_sub as (
@@ -428,45 +430,41 @@ begin
       'reviewsRequired', jcount, 'loveCount', love_count, 'rejectCount', reject_count,
       'savedForLaterCount', save_for_later_count,
       'byJuror', by_juror, 'rank', null
-    )), '[]'::jsonb) into unranked
+    ) order by title), '[]'::jsonb) into unranked
   from per_sub where not (eligible and reviews_completed = jcount);
 
+  -- Tie-at-the-cutoff detection: lay out eligible, fully-reviewed
+  -- submissions in an arbitrary (ungapped) position order and compare the
+  -- score at position 20 against position 21. If they're equal, the Top 20
+  -- line falls in the middle of a tied group -- flag the single rank that
+  -- whole group shares (competition ranking means they all share one rank
+  -- number) plus every submission id in it, for a manual call.
   with per_sub as (
-    select s.id, s.eligible,
+    select s.id, s.title, s.eligible,
       count(v.id) as reviews_completed,
       (count(*) filter (where v.vote = 'love'))::numeric * 1
         + (count(*) filter (where v.vote = 'save_for_later'))::numeric * 0.1
         + (count(*) filter (where v.vote = 'reject'))::numeric * -0.1 as score
     from submissions s
     left join votes v on v.submission_id = s.id and v.vote <> 'skip'
-    group by s.id, s.eligible
+    group by s.id, s.title, s.eligible
   ),
-  ranked_cte as (
-    select *, row_number() over (order by score desc, id) as rnk
-    from per_sub where eligible and reviews_completed = jcount
+  eligible_complete as (
+    select * from per_sub where eligible and reviews_completed = jcount
+  ),
+  pos_cte as (
+    select *, row_number() over (order by score desc) as pos
+    from eligible_complete
   )
-  select max(score) filter (where rnk = 20), max(score) filter (where rnk = 21)
+  select max(score) filter (where pos = 20), max(score) filter (where pos = 21)
     into rank20_score, rank21_score
-  from ranked_cte;
+  from pos_cte;
 
   if rank20_score is not null and rank21_score is not null and rank20_score = rank21_score then
-    with per_sub as (
-      select s.id, s.eligible,
-        count(v.id) as reviews_completed,
-        (count(*) filter (where v.vote = 'love'))::numeric * 1
-          + (count(*) filter (where v.vote = 'save_for_later'))::numeric * 0.1
-          + (count(*) filter (where v.vote = 'reject'))::numeric * -0.1 as score
-      from submissions s
-      left join votes v on v.submission_id = s.id and v.vote <> 'skip'
-      group by s.id, s.eligible
-    ),
-    ranked_cte as (
-      select *, row_number() over (order by score desc, id) as rnk
-      from per_sub where eligible and reviews_completed = jcount
-    )
-    select array_agg(rnk order by rnk), array_agg(id order by rnk) into tied_ranks, tied_ids
-      from ranked_cte where score = rank20_score;
-    tie_flag := jsonb_build_object('ranks', to_jsonb(tied_ranks), 'submissionIds', to_jsonb(tied_ids));
+    select count(*) + 1 into tied_rank from eligible_complete where score > rank20_score;
+    select array_agg(id order by title) into tied_ids
+      from eligible_complete where score = rank20_score;
+    tie_flag := jsonb_build_object('rank', tied_rank, 'submissionIds', to_jsonb(tied_ids));
   end if;
 
   return jsonb_build_object(
@@ -505,7 +503,9 @@ begin
     group by s.id
   ),
   ranked_cte as (
-    select p.id, row_number() over (order by p.score desc, p.id) as rnk
+    -- Same competition ("1224") ranking as jury_admin_results: ties share
+    -- a rank and the next distinct score skips ahead.
+    select p.id, rank() over (order by p.score desc) as rnk
     from per_sub p join submissions s2 on s2.id = p.id
     where s2.eligible and p.reviews_completed = jcount
   )
@@ -607,15 +607,19 @@ begin
     group by s.id, s.artist_name, s.title, s.eligible
   ),
   ranked_cte as (
-    select *, case when selig and reviews_completed = jcount
-      then row_number() over (order by score desc, sid) else null end as rnk
-    from per_sub
+    -- Same competition ("1224") ranking as jury_admin_results /
+    -- jury_admin_submissions: ranked only among eligible, fully-reviewed
+    -- submissions (an ineligible or still-in-progress one never occupies a
+    -- slot in the ordering), and ties share a rank while the next distinct
+    -- score skips ahead.
+    select sid, rank() over (order by score desc) as rnk
+    from per_sub where selig and reviews_completed = jcount
   )
   select
     r.rnk::int,
-    r.sid,
-    r.sname,
-    r.stitle,
+    p.sid,
+    p.sname,
+    p.stitle,
     coalesce((select string_agg(j.name || ': ' || (
         case v.vote
           when 'love' then 'Shortlisted'
@@ -624,17 +628,18 @@ begin
           else null
         end
       ), '; ' order by j.name)
-      from users j left join votes v on v.juror_id = j.id and v.submission_id = r.sid and v.vote <> 'skip'
+      from users j left join votes v on v.juror_id = j.id and v.submission_id = p.sid and v.vote <> 'skip'
       where j.role = 'juror'), ''),
-    r.love_count::int,
-    r.reject_count::int,
-    r.save_for_later_count::int,
+    p.love_count::int,
+    p.reject_count::int,
+    p.save_for_later_count::int,
     case when r.rnk is not null and r.rnk <= 20 then 'Yes' else 'No' end,
     coalesce((select string_agg(j2.name || ': ' || v2.comment, ' | ' order by j2.name)
       from votes v2 join users j2 on j2.id = v2.juror_id
-      where v2.submission_id = r.sid and v2.comment <> '' and v2.vote <> 'skip'), '')
-  from ranked_cte r
-  order by (r.rnk is null), r.rnk, r.sid;
+      where v2.submission_id = p.sid and v2.comment <> '' and v2.vote <> 'skip'), '')
+  from per_sub p
+  left join ranked_cte r on r.sid = p.sid
+  order by (r.rnk is null), r.rnk, p.stitle;
 end;
 $$;
 grant execute on function jury_admin_export_rows(text, text) to anon;

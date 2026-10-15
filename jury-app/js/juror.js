@@ -57,13 +57,6 @@ const ICON_LOVE_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M
 const ICON_REJECT_SOLID = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
 const ICON_SAVE_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.75A1.75 1.75 0 0 1 7.75 2h8.5A1.75 1.75 0 0 1 18 3.75V21l-6-4-6 4V3.75z"/></svg>`;
 
-// Comment is required before a vote of 'love' or 'reject' can be saved --
-// 'save_for_later' never needs one. Mirrors the same check jury_vote()
-// makes server-side (06_shortlist_rename_and_rank.sql).
-function requiresComment(vote) {
-  return vote === 'love' || vote === 'reject';
-}
-
 const VOTE_ORDER = ['love', 'reject', 'save_for_later'];
 const VOTE_META = {
   love: { label: 'Shortlisted', icon: ICON_LOVE, badgeIcon: ICON_LOVE_SOLID, verb: 'You shortlisted this piece' },
@@ -316,16 +309,18 @@ function renderSubmissionDetail(panelEl, submission, myVote, othersVotes, opts) 
 }
 
 // Mode 1: the 3-option evaluation row (Shortlist / Reject / Save for
-// later) plus a standalone Compare row below it, then an always-visible
-// comments field -- pre-filled with any previous comment when revisiting a
-// Saved-for-Later artwork from the priority queue. A comment is required
-// before Shortlist or Reject can be saved (requiresComment()); Save for
-// later never needs one.
+// later) plus a standalone Compare row below it, then an always-visible,
+// always-optional comments field -- pre-filled with any previous comment
+// when revisiting a Saved-for-Later artwork from the priority queue. This
+// is the only place the artwork's submission id (e.g. "SG-R10") is shown,
+// in bigger type right above the title -- it's not repeated on the All
+// Artworks grid or the Shortlisted/Rejected/Saved for Later tabs.
 function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPaneHtml, existingVote) {
   panelEl.innerHTML = `
     <div class="review-layout">
       <div class="artwork-pane">${artworkPaneHtml}</div>
       <div class="detail-pane">
+        <p class="detail-pane__id">${escapeHtml(submission.id || '')}</p>
         <h2 class="detail-pane__title">${escapeHtml(submission.title || 'Untitled')}</h2>
         <p class="detail-pane__meta">${escapeHtml(submission.discipline || '—')} · ${escapeHtml(submission.medium || '—')}${submission.dimensions ? ` · ${escapeHtml(submission.dimensions)}` : ''}</p>
         <div class="detail-pane__statement">${escapeHtml(submission.statement || 'No artist statement provided.')}</div>
@@ -354,9 +349,8 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
         </div>
 
         <div class="comment-box">
-          <label for="commentInput">Comments</label>
+          <label for="commentInput">Comments (optional)</label>
           <textarea id="commentInput" rows="3" placeholder="Any notes or comments on the artwork? Type here.">${escapeHtml((existingVote && existingVote.comment) || '')}</textarea>
-          <p class="comment-box__error" id="commentError" hidden>Please add a comment before marking this piece as Shortlisted or Rejected.</p>
         </div>
       </div>
     </div>
@@ -365,36 +359,19 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
   wireArtworkZoom(submission);
 
   const commentInput = document.getElementById('commentInput');
-  const commentError = document.getElementById('commentError');
   const loveBtn = document.getElementById('loveBtn');
   const rejectBtn = document.getElementById('rejectBtn');
   const saveBtn = document.getElementById('saveBtn');
   const compareBtn = document.getElementById('compareBtn');
 
-  commentInput.addEventListener('input', () => { commentError.hidden = true; });
-
   const attemptVote = (vote) => {
-    const comment = commentInput.value;
-    if (requiresComment(vote) && !comment.trim()) {
-      flashCommentRequired(commentError, commentInput);
-      return;
-    }
-    castVoteFreshEval(panelEl, submission, vote, comment);
+    castVoteFreshEval(panelEl, submission, vote, commentInput.value);
   };
 
   loveBtn.addEventListener('click', () => attemptVote('love'));
   rejectBtn.addEventListener('click', () => attemptVote('reject'));
   saveBtn.addEventListener('click', () => attemptVote('save_for_later'));
   compareBtn.addEventListener('click', () => openCompareModal(submission));
-}
-
-function flashCommentRequired(errorEl, inputEl) {
-  if (errorEl) errorEl.hidden = false;
-  if (inputEl) {
-    inputEl.focus();
-    inputEl.classList.add('is-invalid');
-    setTimeout(() => inputEl.classList.remove('is-invalid'), 1200);
-  }
 }
 
 async function castVoteFreshEval(panelEl, submission, vote, comment) {
@@ -422,9 +399,8 @@ async function castVoteFreshEval(panelEl, submission, vote, comment) {
 
 // Mode 2: this artwork already has a vote -- show which state it's in,
 // let the juror switch to any of the other two states via the same icon
-// set used on the list rows, and let them edit their comment. Switching to
-// Shortlist or Reject requires a comment to already be present (or typed
-// right here first), same rule as the fresh evaluation.
+// set used on the list rows, and let them edit their comment (always
+// optional, on any vote state).
 function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts, artworkPaneHtml) {
   const vote = myVote.vote;
   const meta = VOTE_META[vote] || { label: vote, verb: 'You reacted to this piece' };
@@ -448,9 +424,8 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
         </div>
 
         <div class="comment-box">
-          <label for="commentEditInput">Comments</label>
+          <label for="commentEditInput">Comments (optional)</label>
           <textarea id="commentEditInput" rows="3" placeholder="Any notes or comments on the artwork? Type here.">${escapeHtml(myVote.comment || '')}</textarea>
-          <p class="comment-box__error" id="commentEditError" hidden>Please add a comment before marking this piece as Shortlisted or Rejected.</p>
           <button type="button" class="btn btn--secondary comment-box__save" id="saveCommentBtn">Save comment</button>
         </div>
 
@@ -466,18 +441,11 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
 
   wireArtworkZoom(submission);
 
-  const commentEditError = document.getElementById('commentEditError');
-  document.getElementById('commentEditInput').addEventListener('input', () => { commentEditError.hidden = true; });
-
   document.querySelectorAll('#stateIconRow [data-vote]').forEach((btn) => {
     if (btn.disabled) return;
     btn.addEventListener('click', () => {
       const newVote = btn.dataset.vote;
       const commentEditInput = document.getElementById('commentEditInput');
-      if (requiresComment(newVote) && !commentEditInput.value.trim()) {
-        flashCommentRequired(commentEditError, commentEditInput);
-        return;
-      }
       switchVoteState(panelEl, submission, newVote, commentEditInput.value, opts, vote);
     });
   });
@@ -485,10 +453,6 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
   const saveCommentBtn = document.getElementById('saveCommentBtn');
   saveCommentBtn.addEventListener('click', () => {
     const commentEditInput = document.getElementById('commentEditInput');
-    if (requiresComment(vote) && !commentEditInput.value.trim()) {
-      flashCommentRequired(commentEditError, commentEditInput);
-      return;
-    }
     switchVoteState(panelEl, submission, vote, commentEditInput.value, opts, vote);
   });
 
@@ -701,14 +665,6 @@ function renderVoteList(key, container, items, finalized) {
 async function switchRowVoteState(key, submissionId, newVote) {
   const current = ((latestReview && latestReview[key]) || []).find((i) => i.submissionId === submissionId);
   const comment = current ? current.comment : '';
-  if (requiresComment(newVote) && !(comment && comment.trim())) {
-    // No comment on file yet, and there's no textbox on this row to collect
-    // one -- send the juror to the artwork's own detail view, where they
-    // can type a comment and switch state properly through the real form.
-    showToast(`Add a comment before marking this as ${VOTE_META[newVote].label}`);
-    openArtworkFromAnywhere(submissionId);
-    return;
-  }
   try {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId, vote: newVote, comment });
     if (!result || !result.ok) return;
@@ -1149,9 +1105,9 @@ const TUTORIAL_PAGES = [
   {
     render: () => `
       <p class="tutorial-card__eyebrow">3 of 4</p>
-      <h2 class="detail-pane__title">Comments are required for Shortlist and Reject</h2>
-      <p class="detail-pane__meta">Before you can mark a piece as Shortlisted or Rejected, you'll need to leave a comment explaining your reasoning. Save for later never requires one.</p>
-      <p class="detail-pane__meta" style="margin-top:10px">You're never locked in -- you can always go back and edit your comment on any artwork later, from its Shortlisted, Rejected, or Save for Later tab.</p>
+      <h2 class="detail-pane__title">Comments are always optional</h2>
+      <p class="detail-pane__meta">You're never required to leave a comment on an artwork -- but if you do want to drop one, it's easiest to do it before you mark the piece, while it's right in front of you.</p>
+      <p class="detail-pane__meta" style="margin-top:10px">You're never locked in, either way -- you can always come back and add or edit your comment on any artwork later, from its Shortlisted, Rejected, or Save for Later tab.</p>
     `,
   },
   {
