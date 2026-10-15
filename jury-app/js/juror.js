@@ -49,12 +49,20 @@ const ICON_SAVE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const ICON_SKIP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l9 7-9 7V5z"/><path d="M18 5v14"/></svg>`;
 const ICON_COMPARE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>`;
 
+// Solid/filled variants -- used only for the "All Artwork" tile badge, so a
+// reviewed tile reads unmistakably at a glance (vs. the thin outline icons
+// used everywhere else, which are easy to miss at tile size).
+const ICON_LOVE_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.8-9.3C.6 7.8 2 4.5 5.4 3.8c2-.4 3.9.6 4.9 2.2.3.5.9.5 1.2 0 1-1.6 2.9-2.6 4.9-2.2 3.4.7 4.8 4 3.2 7.4-2.3 4.7-9.6 9.3-9.6 9.3z"/></svg>`;
+const ICON_REJECT_SOLID = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
+const ICON_SAVE_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.75A1.75 1.75 0 0 1 7.75 2h8.5A1.75 1.75 0 0 1 18 3.75V21l-6-4-6 4V3.75z"/></svg>`;
+const ICON_SKIP_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l9 7-9 7V5z"/><rect x="17" y="5" width="2.3" height="14" rx="1"/></svg>`;
+
 const VOTE_ORDER = ['love', 'reject', 'save_for_later', 'skip'];
 const VOTE_META = {
-  love: { label: 'Loved', icon: ICON_LOVE, verb: 'You loved this piece' },
-  reject: { label: 'Needs Improvement', icon: ICON_REJECT, verb: 'You marked this piece as needing improvement' },
-  save_for_later: { label: 'Saved for Later', icon: ICON_SAVE, verb: 'You saved this piece for later' },
-  skip: { label: 'Skipped', icon: ICON_SKIP, verb: 'You skipped this piece' },
+  love: { label: 'Loved', icon: ICON_LOVE, badgeIcon: ICON_LOVE_SOLID, verb: 'You loved this piece' },
+  reject: { label: 'Rejected', icon: ICON_REJECT, badgeIcon: ICON_REJECT_SOLID, verb: 'You rejected this piece' },
+  save_for_later: { label: 'Saved for Later', icon: ICON_SAVE, badgeIcon: ICON_SAVE_SOLID, verb: 'You saved this piece for later' },
+  skip: { label: 'Skipped', icon: ICON_SKIP, badgeIcon: ICON_SKIP_SOLID, verb: 'You skipped this piece' },
 };
 const VOTE_TO_TAB = { love: 'loved', reject: 'rejected', save_for_later: 'savedForLater', skip: 'skipped' };
 
@@ -299,7 +307,7 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
             </button>
             <button type="button" class="action-btn action-btn--reject" id="rejectBtn">
               <span class="action-btn__icon">${ICON_REJECT}</span>
-              <span class="action-btn__caption">Needs Improvement</span>
+              <span class="action-btn__caption">Rejected</span>
             </button>
           </div>
           <div class="action-grid__row">
@@ -320,7 +328,7 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
 
         <div class="comment-box">
           <label for="commentInput">Comments (Optional)</label>
-          <textarea id="commentInput" rows="3" placeholder="Anything you want the admin to know about this piece…">${escapeHtml((existingVote && existingVote.comment) || '')}</textarea>
+          <textarea id="commentInput" rows="3" placeholder="Any notes or comments on the artwork? Type here.">${escapeHtml((existingVote && existingVote.comment) || '')}</textarea>
         </div>
       </div>
     </div>
@@ -391,7 +399,7 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
 
         <div class="comment-box">
           <label for="commentEditInput">Comments (Optional)</label>
-          <textarea id="commentEditInput" rows="3">${escapeHtml(myVote.comment || '')}</textarea>
+          <textarea id="commentEditInput" rows="3" placeholder="Any notes or comments on the artwork? Type here.">${escapeHtml(myVote.comment || '')}</textarea>
           <button type="button" class="btn btn--secondary comment-box__save" id="saveCommentBtn">Save comment</button>
         </div>
 
@@ -669,7 +677,7 @@ const MY_TAKE_OPTIONS = [
   { value: '', label: 'My review: all' },
   { value: 'none', label: 'Yet to evaluate' },
   { value: 'love', label: 'Loved' },
-  { value: 'reject', label: 'Needs Improvement' },
+  { value: 'reject', label: 'Rejected' },
   { value: 'save_for_later', label: 'Saved for Later' },
   { value: 'skip', label: 'Skipped' },
 ];
@@ -721,7 +729,7 @@ function renderAllArtworkGrid() {
   grid.innerHTML = filtered
     .map((a) => {
       const image = a.image && a.image.type === 'image' ? a.image.url : '';
-      const badge = a.myVote ? `<span class="all-artwork-tile__badge all-artwork-tile__badge--${a.myVote}">${VOTE_META[a.myVote].icon}</span>` : '';
+      const badge = a.myVote ? `<span class="all-artwork-tile__badge all-artwork-tile__badge--${a.myVote}">${VOTE_META[a.myVote].badgeIcon}</span>` : '';
       return `
         <button type="button" class="all-artwork-tile" data-id="${escapeHtml(a.id)}">
           ${badge}
