@@ -377,10 +377,16 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
 async function castVoteFreshEval(panelEl, submission, vote, comment) {
   const buttons = panelEl.querySelectorAll('.action-btn');
   buttons.forEach((el) => { el.disabled = true; });
+  // Immediate feedback the instant a button is clicked -- without this, a
+  // slow network retry or a backend error that takes a couple of seconds
+  // to surface just looks like the click did nothing.
+  showToast('Saving…');
   try {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId: submission.id, vote, comment: comment || '' });
     if (!result || !result.ok) {
-      panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml((result && result.error) || 'Could not save your reaction. Please try again.')}</p>`);
+      const msg = (result && result.error) || 'Could not save your reaction. Please try again.';
+      showToast(msg);
+      panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml(msg)}</p>`);
       buttons.forEach((el) => { el.disabled = false; });
       return;
     }
@@ -392,7 +398,9 @@ async function castVoteFreshEval(panelEl, submission, vote, comment) {
     setTabUI('pending');
     await loadPendingPanel();
   } catch (err) {
-    panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml(err.message || 'Could not save your reaction.')}</p>`);
+    const msg = err.message || 'Could not save your reaction.';
+    showToast(msg);
+    panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml(msg)}</p>`);
     buttons.forEach((el) => { el.disabled = false; });
   }
 }
@@ -467,10 +475,13 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
 
 async function switchVoteState(panelEl, submission, newVote, comment, opts, oldVote) {
   panelEl.querySelectorAll('button').forEach((el) => { el.disabled = true; });
+  showToast('Saving…');
   try {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId: submission.id, vote: newVote, comment: comment || '' });
     if (!result || !result.ok) {
-      panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml((result && result.error) || 'Could not save that change. Please try again.')}</p>`);
+      const msg = (result && result.error) || 'Could not save that change. Please try again.';
+      showToast(msg);
+      panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml(msg)}</p>`);
       panelEl.querySelectorAll('button').forEach((el) => { el.disabled = false; });
       return;
     }
@@ -482,7 +493,9 @@ async function switchVoteState(panelEl, submission, newVote, comment, opts, oldV
       renderSubmissionDetail(panelEl, fresh.submission, fresh.myVote, fresh.othersVotes, opts);
     }
   } catch (err) {
-    panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml(err.message || 'Could not save that change.')}</p>`);
+    const msg = err.message || 'Could not save that change.';
+    showToast(msg);
+    panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml(msg)}</p>`);
     panelEl.querySelectorAll('button').forEach((el) => { el.disabled = false; });
   }
 }
@@ -665,15 +678,22 @@ function renderVoteList(key, container, items, finalized) {
 async function switchRowVoteState(key, submissionId, newVote) {
   const current = ((latestReview && latestReview[key]) || []).find((i) => i.submissionId === submissionId);
   const comment = current ? current.comment : '';
+  showToast('Saving…');
   try {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId, vote: newVote, comment });
-    if (!result || !result.ok) return;
+    if (!result || !result.ok) {
+      // Previously swallowed silently here -- a failed quick-switch click
+      // from a list row looked exactly like a click that did nothing at
+      // all, with zero feedback either way.
+      showToast((result && result.error) || 'Could not save that change. Please try again.');
+      return;
+    }
     allArtworksCache = null;
     showVoteToast(current ? current.title : '', newVote);
     await refreshStatus();
     tabs[key].load();
   } catch (err) {
-    // leave the list as-is; the juror can just click the icon again
+    showToast(err.message || 'Could not save that change. Please try again.');
   }
 }
 
@@ -1129,6 +1149,7 @@ function renderTutorialStep() {
       ${TUTORIAL_PAGES.map((_, i) => `<span class="tutorial-card__dot${i === tutorialStep ? ' is-active' : ''}"></span>`).join('')}
     </div>
     <button type="button" class="btn btn--primary btn--block tutorial-card__next" id="tutorialNextBtn">${isLast ? 'I understand' : 'Next'}</button>
+    ${isLast ? '' : '<button type="button" class="btn btn--text tutorial-card__skip" id="tutorialSkipBtn">Skip</button>'}
   `;
   document.getElementById('tutorialNextBtn').addEventListener('click', () => {
     if (isLast) {
@@ -1138,6 +1159,8 @@ function renderTutorialStep() {
       renderTutorialStep();
     }
   });
+  const skipBtn = document.getElementById('tutorialSkipBtn');
+  if (skipBtn) skipBtn.addEventListener('click', closeTutorial);
 }
 
 function openTutorial() {

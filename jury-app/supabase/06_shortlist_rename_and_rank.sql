@@ -461,9 +461,27 @@ begin
   from pos_cte;
 
   if rank20_score is not null and rank21_score is not null and rank20_score = rank21_score then
-    select count(*) + 1 into tied_rank from eligible_complete where score > rank20_score;
-    select array_agg(id order by title) into tied_ids
-      from eligible_complete where score = rank20_score;
+    -- eligible_complete above only lives inside that WITH statement -- it
+    -- has to be redefined here rather than referenced again, or Postgres
+    -- fails this whole function with "relation eligible_complete does not
+    -- exist" the moment a real boundary tie makes this branch run.
+    with per_sub as (
+      select s.id, s.title, s.eligible,
+        count(v.id) as reviews_completed,
+        (count(*) filter (where v.vote = 'love'))::numeric * 1
+          + (count(*) filter (where v.vote = 'save_for_later'))::numeric * 0.1
+          + (count(*) filter (where v.vote = 'reject'))::numeric * -0.1 as score
+      from submissions s
+      left join votes v on v.submission_id = s.id and v.vote <> 'skip'
+      group by s.id, s.title, s.eligible
+    ),
+    eligible_complete as (
+      select * from per_sub where eligible and reviews_completed = jcount
+    )
+    select
+      (select count(*) + 1 from eligible_complete where score > rank20_score),
+      (select array_agg(id order by title) from eligible_complete where score = rank20_score)
+      into tied_rank, tied_ids;
     tie_flag := jsonb_build_object('rank', tied_rank, 'submissionIds', to_jsonb(tied_ids));
   end if;
 

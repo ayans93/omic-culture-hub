@@ -63,7 +63,28 @@ async function juryApiCallOnce(formType, extraParams) {
   }
 
   if (!res.ok) {
-    throw new Error('Could not reach the jury service.');
+    // Surface PostgREST's actual error body (it sends { message, details,
+    // hint, code } as JSON on both validation failures like a bad CHECK
+    // constraint and on a broken/outdated RPC function) instead of masking
+    // every non-2xx response behind one generic string -- that generic
+    // message is exactly why a real backend error used to look like "the
+    // button did nothing": the UI said "could not reach the service" no
+    // matter what actually went wrong.
+    let detail = '';
+    try {
+      const body = await res.json();
+      detail = (body && (body.message || body.error || body.hint)) || '';
+    } catch (parseErr) {
+      // response wasn't JSON (e.g. a plain-text gateway error) -- fall
+      // through with no extra detail rather than failing the whole call
+    }
+    const err = new Error(detail ? `Request failed: ${detail}` : `Request failed (HTTP ${res.status}).`);
+    // 4xx means the server understood the request and rejected it (bad
+    // input, a stale/mismatched function signature, RLS, etc.) -- retrying
+    // the exact same request three times just delays showing the real
+    // error, so only 5xx/network-level failures are worth retrying.
+    err.permanent = res.status >= 400 && res.status < 500;
+    throw err;
   }
   return res.json();
 }
@@ -83,7 +104,7 @@ export async function juryApiCall(formType, extraParams, onRetry, attempt) {
   try {
     return await juryApiCallOnce(formType, extraParams);
   } catch (err) {
-    const isPermanent = /not configured/i.test((err && err.message) || '');
+    const isPermanent = (err && err.permanent) || /not configured/i.test((err && err.message) || '');
     if (isPermanent || attempt >= MAX_ATTEMPTS) {
       throw err;
     }
