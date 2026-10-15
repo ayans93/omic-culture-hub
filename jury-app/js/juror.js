@@ -11,16 +11,16 @@ const tabs = {
   loved: { btn: document.getElementById('tabBtnLoved'), panel: document.getElementById('panelLoved'), load: () => loadListPanel('loved') },
   rejected: { btn: document.getElementById('tabBtnRejected'), panel: document.getElementById('panelRejected'), load: () => loadListPanel('rejected') },
   savedForLater: { btn: document.getElementById('tabBtnSavedForLater'), panel: document.getElementById('panelSavedForLater'), load: () => loadListPanel('savedForLater') },
-  skipped: { btn: document.getElementById('tabBtnSkipped'), panel: document.getElementById('panelSkipped'), load: () => loadListPanel('skipped') },
   all: { btn: document.getElementById('tabBtnAll'), panel: document.getElementById('panelAll'), load: loadAllArtworkPanel },
+  comments: { btn: document.getElementById('tabBtnComments'), panel: document.getElementById('panelComments'), load: loadCommentsPanel },
 };
 
 const countPending = document.getElementById('countPending');
 const countLoved = document.getElementById('countLoved');
 const countRejected = document.getElementById('countRejected');
 const countSavedForLater = document.getElementById('countSavedForLater');
-const countSkipped = document.getElementById('countSkipped');
 const countAll = document.getElementById('countAll');
+const countComments = document.getElementById('countComments');
 
 const zoomOverlay = document.getElementById('zoomOverlay');
 const zoomImage = document.getElementById('zoomImage');
@@ -48,7 +48,6 @@ logoutBtn.addEventListener('click', () => {
 const ICON_LOVE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.8-9.3C.6 7.8 2 4.5 5.4 3.8c2-.4 3.9.6 4.9 2.2.3.5.9.5 1.2 0 1-1.6 2.9-2.6 4.9-2.2 3.4.7 4.8 4 3.2 7.4-2.3 4.7-9.6 9.3-9.6 9.3z"/></svg>`;
 const ICON_REJECT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>`;
 const ICON_SAVE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.75A1.75 1.75 0 0 1 7.75 2h8.5A1.75 1.75 0 0 1 18 3.75V21l-6-4-6 4V3.75z"/></svg>`;
-const ICON_SKIP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l9 7-9 7V5z"/><path d="M18 5v14"/></svg>`;
 const ICON_COMPARE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>`;
 
 // Solid/filled variants -- used only for the "All Artwork" tile badge, so a
@@ -57,16 +56,21 @@ const ICON_COMPARE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const ICON_LOVE_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.8-9.3C.6 7.8 2 4.5 5.4 3.8c2-.4 3.9.6 4.9 2.2.3.5.9.5 1.2 0 1-1.6 2.9-2.6 4.9-2.2 3.4.7 4.8 4 3.2 7.4-2.3 4.7-9.6 9.3-9.6 9.3z"/></svg>`;
 const ICON_REJECT_SOLID = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`;
 const ICON_SAVE_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.75A1.75 1.75 0 0 1 7.75 2h8.5A1.75 1.75 0 0 1 18 3.75V21l-6-4-6 4V3.75z"/></svg>`;
-const ICON_SKIP_SOLID = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l9 7-9 7V5z"/><rect x="17" y="5" width="2.3" height="14" rx="1"/></svg>`;
 
-const VOTE_ORDER = ['love', 'reject', 'save_for_later', 'skip'];
+// Comment is required before a vote of 'love' or 'reject' can be saved --
+// 'save_for_later' never needs one. Mirrors the same check jury_vote()
+// makes server-side (06_shortlist_rename_and_rank.sql).
+function requiresComment(vote) {
+  return vote === 'love' || vote === 'reject';
+}
+
+const VOTE_ORDER = ['love', 'reject', 'save_for_later'];
 const VOTE_META = {
-  love: { label: 'Loved', icon: ICON_LOVE, badgeIcon: ICON_LOVE_SOLID, verb: 'You loved this piece' },
+  love: { label: 'Shortlisted', icon: ICON_LOVE, badgeIcon: ICON_LOVE_SOLID, verb: 'You shortlisted this piece' },
   reject: { label: 'Rejected', icon: ICON_REJECT, badgeIcon: ICON_REJECT_SOLID, verb: 'You rejected this piece' },
   save_for_later: { label: 'Saved for Later', icon: ICON_SAVE, badgeIcon: ICON_SAVE_SOLID, verb: 'You saved this piece for later' },
-  skip: { label: 'Skipped', icon: ICON_SKIP, badgeIcon: ICON_SKIP_SOLID, verb: 'You skipped this piece' },
 };
-const VOTE_TO_TAB = { love: 'loved', reject: 'rejected', save_for_later: 'savedForLater', skip: 'skipped' };
+const VOTE_TO_TAB = { love: 'loved', reject: 'rejected', save_for_later: 'savedForLater' };
 
 // ---------------------------------------------------------------------------
 // Toast -- a brief confirmation banner at the top of the screen, shown only
@@ -155,7 +159,6 @@ function renderTabCounts() {
   countLoved.textContent = latestReview.loved.length;
   countRejected.textContent = latestReview.rejected.length;
   countSavedForLater.textContent = latestReview.savedForLater.length;
-  countSkipped.textContent = latestReview.skipped.length;
   countAll.textContent = latestReview.reviewsRequired;
 }
 
@@ -298,12 +301,12 @@ function renderOthersVotes(othersVotes) {
 
 function renderSubmissionDetail(panelEl, submission, myVote, othersVotes, opts) {
   const artworkPaneHtml = renderArtworkPane(submission.image, submission.title);
-  // "Yet to Evaluate" always gets the full 5-option evaluator, even when
-  // this artwork already carries a Save-for-Later or Skip vote -- that's
-  // exactly the case of revisiting it to make a final Love/Needs
-  // Improvement call, not a quick state switch. The compact state-switch
-  // view (4-icon row + edit comment) is only for an artwork opened from one
-  // of the Loved/Rejected/Save for Later/Skipped list tabs or an "All
+  // "Yet to Evaluate" always gets the full evaluator, even when this
+  // artwork already carries a Save-for-Later vote -- that's exactly the
+  // case of revisiting it to make a final Shortlist/Reject call, not a
+  // quick state switch. The compact state-switch view (3-icon row + edit
+  // comment) is only for an artwork opened from one of the Shortlisted/
+  // Rejected/Save for Later list tabs, the Comments tab, or an "All
   // Artwork" tile, where by definition a vote already exists.
   if (myVote && opts.context !== 'pending') {
     renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts, artworkPaneHtml);
@@ -312,49 +315,48 @@ function renderSubmissionDetail(panelEl, submission, myVote, othersVotes, opts) 
   }
 }
 
-// Mode 1: the 5-option evaluation row (Love / Needs Improvement on row
-// one, Save for later / Compare / Skip on row two) plus an always-visible,
-// optional comments field -- pre-filled with any previous comment when
-// revisiting a Saved-for-Later or Skipped artwork from the priority queue.
+// Mode 1: the 3-option evaluation row (Shortlist / Reject / Save for
+// later) plus a standalone Compare row below it, then an always-visible
+// comments field -- pre-filled with any previous comment when revisiting a
+// Saved-for-Later artwork from the priority queue. A comment is required
+// before Shortlist or Reject can be saved (requiresComment()); Save for
+// later never needs one.
 function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPaneHtml, existingVote) {
   panelEl.innerHTML = `
     <div class="review-layout">
       <div class="artwork-pane">${artworkPaneHtml}</div>
       <div class="detail-pane">
         <h2 class="detail-pane__title">${escapeHtml(submission.title || 'Untitled')}</h2>
-        <p class="detail-pane__meta">${escapeHtml(submission.discipline || '—')} · ${escapeHtml(submission.medium || '—')}</p>
+        <p class="detail-pane__meta">${escapeHtml(submission.discipline || '—')} · ${escapeHtml(submission.medium || '—')}${submission.dimensions ? ` · ${escapeHtml(submission.dimensions)}` : ''}</p>
         <div class="detail-pane__statement">${escapeHtml(submission.statement || 'No artist statement provided.')}</div>
 
         <div class="action-grid">
-          <div class="action-grid__row">
+          <div class="action-grid__row action-grid__row--three">
             <button type="button" class="action-btn action-btn--love" id="loveBtn">
               <span class="action-btn__icon">${ICON_LOVE}</span>
-              <span class="action-btn__caption">Love</span>
+              <span class="action-btn__caption">Shortlist</span>
             </button>
             <button type="button" class="action-btn action-btn--reject" id="rejectBtn">
               <span class="action-btn__icon">${ICON_REJECT}</span>
-              <span class="action-btn__caption">Rejected</span>
+              <span class="action-btn__caption">Reject</span>
             </button>
-          </div>
-          <div class="action-grid__row">
             <button type="button" class="action-btn action-btn--save_for_later" id="saveBtn">
               <span class="action-btn__icon">${ICON_SAVE}</span>
               <span class="action-btn__caption">Save for later</span>
             </button>
+          </div>
+          <div class="action-grid__row action-grid__row--single">
             <button type="button" class="action-btn action-btn--compare" id="compareBtn">
               <span class="action-btn__icon">${ICON_COMPARE}</span>
               <span class="action-btn__caption">Compare</span>
-            </button>
-            <button type="button" class="action-btn action-btn--skip" id="skipBtn">
-              <span class="action-btn__icon">${ICON_SKIP}</span>
-              <span class="action-btn__caption">Skip</span>
             </button>
           </div>
         </div>
 
         <div class="comment-box">
-          <label for="commentInput">Comments (Optional)</label>
+          <label for="commentInput">Comments</label>
           <textarea id="commentInput" rows="3" placeholder="Any notes or comments on the artwork? Type here.">${escapeHtml((existingVote && existingVote.comment) || '')}</textarea>
+          <p class="comment-box__error" id="commentError" hidden>Please add a comment before marking this piece as Shortlisted or Rejected.</p>
         </div>
       </div>
     </div>
@@ -363,17 +365,36 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
   wireArtworkZoom(submission);
 
   const commentInput = document.getElementById('commentInput');
+  const commentError = document.getElementById('commentError');
   const loveBtn = document.getElementById('loveBtn');
   const rejectBtn = document.getElementById('rejectBtn');
   const saveBtn = document.getElementById('saveBtn');
   const compareBtn = document.getElementById('compareBtn');
-  const skipBtn = document.getElementById('skipBtn');
 
-  loveBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'love', commentInput.value));
-  rejectBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'reject', commentInput.value));
-  saveBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'save_for_later', commentInput.value));
-  skipBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'skip', commentInput.value));
+  commentInput.addEventListener('input', () => { commentError.hidden = true; });
+
+  const attemptVote = (vote) => {
+    const comment = commentInput.value;
+    if (requiresComment(vote) && !comment.trim()) {
+      flashCommentRequired(commentError, commentInput);
+      return;
+    }
+    castVoteFreshEval(panelEl, submission, vote, comment);
+  };
+
+  loveBtn.addEventListener('click', () => attemptVote('love'));
+  rejectBtn.addEventListener('click', () => attemptVote('reject'));
+  saveBtn.addEventListener('click', () => attemptVote('save_for_later'));
   compareBtn.addEventListener('click', () => openCompareModal(submission));
+}
+
+function flashCommentRequired(errorEl, inputEl) {
+  if (errorEl) errorEl.hidden = false;
+  if (inputEl) {
+    inputEl.focus();
+    inputEl.classList.add('is-invalid');
+    setTimeout(() => inputEl.classList.remove('is-invalid'), 1200);
+  }
 }
 
 async function castVoteFreshEval(panelEl, submission, vote, comment) {
@@ -400,8 +421,10 @@ async function castVoteFreshEval(panelEl, submission, vote, comment) {
 }
 
 // Mode 2: this artwork already has a vote -- show which state it's in,
-// let the juror switch to any of the other three states via the same
-// icon set used on the list rows, and let them edit their comment.
+// let the juror switch to any of the other two states via the same icon
+// set used on the list rows, and let them edit their comment. Switching to
+// Shortlist or Reject requires a comment to already be present (or typed
+// right here first), same rule as the fresh evaluation.
 function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts, artworkPaneHtml) {
   const vote = myVote.vote;
   const meta = VOTE_META[vote] || { label: vote, verb: 'You reacted to this piece' };
@@ -411,7 +434,7 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
       <div class="artwork-pane">${artworkPaneHtml}</div>
       <div class="detail-pane">
         <h2 class="detail-pane__title">${escapeHtml(submission.title || 'Untitled')}</h2>
-        <p class="detail-pane__meta">${escapeHtml(submission.discipline || '—')} · ${escapeHtml(submission.medium || '—')}</p>
+        <p class="detail-pane__meta">${escapeHtml(submission.discipline || '—')} · ${escapeHtml(submission.medium || '—')}${submission.dimensions ? ` · ${escapeHtml(submission.dimensions)}` : ''}</p>
         <div class="detail-pane__statement">${escapeHtml(submission.statement || 'No artist statement provided.')}</div>
 
         <div class="my-vote-banner my-vote-banner--${vote}">${escapeHtml(meta.verb)}${myVote.comment ? ' — comment saved' : ''}.</div>
@@ -425,8 +448,9 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
         </div>
 
         <div class="comment-box">
-          <label for="commentEditInput">Comments (Optional)</label>
+          <label for="commentEditInput">Comments</label>
           <textarea id="commentEditInput" rows="3" placeholder="Any notes or comments on the artwork? Type here.">${escapeHtml(myVote.comment || '')}</textarea>
+          <p class="comment-box__error" id="commentEditError" hidden>Please add a comment before marking this piece as Shortlisted or Rejected.</p>
           <button type="button" class="btn btn--secondary comment-box__save" id="saveCommentBtn">Save comment</button>
         </div>
 
@@ -442,11 +466,18 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
 
   wireArtworkZoom(submission);
 
+  const commentEditError = document.getElementById('commentEditError');
+  document.getElementById('commentEditInput').addEventListener('input', () => { commentEditError.hidden = true; });
+
   document.querySelectorAll('#stateIconRow [data-vote]').forEach((btn) => {
     if (btn.disabled) return;
     btn.addEventListener('click', () => {
       const newVote = btn.dataset.vote;
       const commentEditInput = document.getElementById('commentEditInput');
+      if (requiresComment(newVote) && !commentEditInput.value.trim()) {
+        flashCommentRequired(commentEditError, commentEditInput);
+        return;
+      }
       switchVoteState(panelEl, submission, newVote, commentEditInput.value, opts, vote);
     });
   });
@@ -454,6 +485,10 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
   const saveCommentBtn = document.getElementById('saveCommentBtn');
   saveCommentBtn.addEventListener('click', () => {
     const commentEditInput = document.getElementById('commentEditInput');
+    if (requiresComment(vote) && !commentEditInput.value.trim()) {
+      flashCommentRequired(commentEditError, commentEditInput);
+      return;
+    }
     switchVoteState(panelEl, submission, vote, commentEditInput.value, opts, vote);
   });
 
@@ -508,7 +543,16 @@ async function openArtworkFromAnywhere(id) {
       renderSubmissionDetail(tabs.pending.panel, result.submission, result.myVote, result.othersVotes, { context: 'pending' });
       return;
     }
-    const key = VOTE_TO_TAB[result.myVote.vote] || 'skipped';
+    const key = VOTE_TO_TAB[result.myVote.vote];
+    if (!key) {
+      // Defensive only -- the backend now filters any stale 'skip' vote
+      // out of myVote entirely, so this shouldn't be reachable in
+      // practice. Fall back to the fresh-evaluation view just in case.
+      setTabUI('pending');
+      refreshStatus();
+      renderSubmissionDetail(tabs.pending.panel, result.submission, null, result.othersVotes, { context: 'pending' });
+      return;
+    }
     setTabUI(key);
     refreshStatus();
     renderSubmissionDetail(tabs[key].panel, result.submission, result.myVote, result.othersVotes, { context: 'list', onBack: () => tabs[key].load() });
@@ -519,9 +563,9 @@ async function openArtworkFromAnywhere(id) {
 
 // ---------------------------------------------------------------------------
 // "Yet to Evaluate" tab -- one artwork at a time, in priority order:
-// untouched submissions first, then anything saved for later, then
-// anything skipped. Once every eligible submission is Loved or marked
-// Needs Improvement, there's nothing left to show.
+// untouched submissions first, then anything saved for later. Once every
+// eligible submission is Shortlisted or Rejected, there's nothing left to
+// show.
 
 async function loadPendingPanel() {
   tabs.pending.panel.innerHTML = '<p class="empty-state">Loading…</p>';
@@ -557,16 +601,12 @@ function computePriorityNextId(order, review) {
   const lovedIds = new Set(review.loved.map((i) => i.submissionId));
   const rejectedIds = new Set(review.rejected.map((i) => i.submissionId));
   const savedIds = new Set(review.savedForLater.map((i) => i.submissionId));
-  const skippedIds = new Set(review.skipped.map((i) => i.submissionId));
 
-  const untouched = order.find((id) => !lovedIds.has(id) && !rejectedIds.has(id) && !savedIds.has(id) && !skippedIds.has(id));
+  const untouched = order.find((id) => !lovedIds.has(id) && !rejectedIds.has(id) && !savedIds.has(id));
   if (untouched) return untouched;
 
   const savedForLater = order.find((id) => savedIds.has(id));
   if (savedForLater) return savedForLater;
-
-  const skipped = order.find((id) => skippedIds.has(id));
-  if (skipped) return skipped;
 
   return null;
 }
@@ -586,9 +626,8 @@ async function loadPendingSubmission(id) {
 }
 
 // ---------------------------------------------------------------------------
-// "Loved" / "Rejected" / "Save for Later" / "Skipped" tabs -- clickable
-// lists of already-reviewed artwork, each row carrying its own 4-icon
-// state switcher (no more "Move to X" buttons now that there are 4 states).
+// "Shortlisted" / "Rejected" / "Save for Later" tabs -- clickable lists of
+// already-reviewed artwork, each row carrying its own 3-icon state switcher.
 
 async function loadListPanel(key) {
   const panel = tabs[key].panel;
@@ -602,7 +641,7 @@ async function loadListPanel(key) {
     latestReview = result;
     renderTabCounts();
     renderStatusBar();
-    const itemsByKey = { loved: result.loved, rejected: result.rejected, savedForLater: result.savedForLater, skipped: result.skipped };
+    const itemsByKey = { loved: result.loved, rejected: result.rejected, savedForLater: result.savedForLater };
     renderVoteList(key, panel, itemsByKey[key], result.finalized);
   } catch (err) {
     panel.innerHTML = renderRetryState(err.message || 'Could not load this list.', () => loadListPanel(key));
@@ -662,6 +701,14 @@ function renderVoteList(key, container, items, finalized) {
 async function switchRowVoteState(key, submissionId, newVote) {
   const current = ((latestReview && latestReview[key]) || []).find((i) => i.submissionId === submissionId);
   const comment = current ? current.comment : '';
+  if (requiresComment(newVote) && !(comment && comment.trim())) {
+    // No comment on file yet, and there's no textbox on this row to collect
+    // one -- send the juror to the artwork's own detail view, where they
+    // can type a comment and switch state properly through the real form.
+    showToast(`Add a comment before marking this as ${VOTE_META[newVote].label}`);
+    openArtworkFromAnywhere(submissionId);
+    return;
+  }
   try {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId, vote: newVote, comment });
     if (!result || !result.ok) return;
@@ -705,10 +752,9 @@ async function loadAllArtworkPanel() {
 const MY_TAKE_OPTIONS = [
   { value: '', label: 'My review: all' },
   { value: 'none', label: 'Yet to evaluate' },
-  { value: 'love', label: 'Loved' },
+  { value: 'love', label: 'Shortlisted' },
   { value: 'reject', label: 'Rejected' },
   { value: 'save_for_later', label: 'Saved for Later' },
-  { value: 'skip', label: 'Skipped' },
 ];
 
 function renderAllArtworkPanel() {
@@ -792,6 +838,7 @@ function normalizeForCompare(item) {
     title: item.title,
     discipline: item.discipline,
     medium: item.medium,
+    dimensions: item.dimensions,
     statement: item.statement,
     image: item.image,
     myVote: item.myVote || null,
@@ -982,7 +1029,7 @@ function renderCompareFinalView() {
             <div class="compare-view__item">
               ${image ? `<img src="${escapeHtml(image)}" alt="" />` : '<div class="all-artwork-tile__image--empty" style="height:220px;background:#1c1a15;border-radius:10px">No image</div>'}
               <h4>${escapeHtml(a.title || 'Untitled')}</h4>
-              <p class="compare-view__meta">${escapeHtml(a.discipline || '—')} · ${escapeHtml(a.medium || '—')}</p>
+              <p class="compare-view__meta">${escapeHtml(a.discipline || '—')} · ${escapeHtml(a.medium || '—')}${a.dimensions ? ` · ${escapeHtml(a.dimensions)}` : ''}</p>
               <p class="compare-view__statement">${escapeHtml(a.statement || 'No artist statement provided.')}</p>
             </div>
           `;
@@ -995,6 +1042,160 @@ function renderCompareFinalView() {
 }
 
 // ---------------------------------------------------------------------------
+// "Comments" tab -- every comment any juror has left, across every
+// submission, newest first. Public to all jurors (not just the ones who
+// wrote them). Clicking a comment opens that artwork through the normal
+// openArtworkFromAnywhere() flow, so the current juror lands on whichever
+// view fits their own relationship to it (fresh evaluator if they haven't
+// voted, state-switch/edit-comment view if they have).
+
+async function loadCommentsPanel() {
+  const panel = tabs.comments.panel;
+  panel.innerHTML = '<p class="empty-state">Loading…</p>';
+  try {
+    const result = await juryApiCall('jurorComments', { ...auth });
+    if (!result || !result.ok) {
+      panel.innerHTML = renderRetryState('Could not load comments. Please try again.', loadCommentsPanel);
+      return;
+    }
+    countComments.textContent = result.comments.length;
+    renderCommentsFeed(panel, result.comments);
+  } catch (err) {
+    panel.innerHTML = renderRetryState(err.message || 'Could not load comments.', loadCommentsPanel);
+  }
+}
+
+function renderCommentsFeed(panel, comments) {
+  if (!comments || !comments.length) {
+    panel.innerHTML = '<p class="empty-state">No comments yet. Comments any juror leaves on an artwork will show up here.</p>';
+    return;
+  }
+  panel.innerHTML = comments
+    .map((c) => {
+      const meta = VOTE_META[c.vote];
+      const pillClass = meta ? `vote-pill--${c.vote}` : 'vote-pill--pending';
+      const label = meta ? meta.label : c.vote;
+      const when = c.updatedAt ? new Date(c.updatedAt).toLocaleString() : '';
+      return `
+        <div class="comment-feed-item" data-submission="${escapeHtml(c.submissionId)}">
+          <div class="comment-feed-item__head">
+            <span class="comment-feed-item__artwork">${escapeHtml(c.title || c.submissionId)}</span>
+            <span class="vote-pill ${pillClass}">${escapeHtml(label)}</span>
+          </div>
+          <p class="comment-feed-item__text">“${escapeHtml(c.comment)}”</p>
+          <div class="comment-feed-item__foot">
+            <span>${escapeHtml(c.jurorName)}</span>
+            ${when ? `<span>${escapeHtml(when)}</span>` : ''}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  panel.querySelectorAll('.comment-feed-item').forEach((row) => {
+    row.addEventListener('click', () => openArtworkFromAnywhere(row.dataset.submission));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Tutorial -- a 4-page walkthrough shown automatically each time a juror
+// lands here. No backdrop-click or close button on purpose (see the "I
+// understand" button on the last page) -- this is meant to be seen, not
+// dismissed in passing. Pages 1-3 advance with "Next"; page 4 ("Comments")
+// closes the modal with "I understand".
+
+const tutorialOverlay = document.getElementById('tutorialOverlay');
+const tutorialContent = document.getElementById('tutorialContent');
+let tutorialStep = 0;
+
+const TUTORIAL_PAGES = [
+  {
+    render: () => `
+      <p class="tutorial-card__eyebrow">1 of 4</p>
+      <h2 class="detail-pane__title">What the buttons mean</h2>
+      <div class="tutorial-buttons-demo">
+        <div class="tutorial-buttons-demo__item">
+          <span class="tutorial-buttons-demo__icon tutorial-buttons-demo__icon--love">${ICON_LOVE}</span>
+          <div>
+            <p class="tutorial-buttons-demo__label">Shortlist</p>
+            <p class="tutorial-buttons-demo__desc">A strong yes -- this piece is in the running for the prize.</p>
+          </div>
+        </div>
+        <div class="tutorial-buttons-demo__item">
+          <span class="tutorial-buttons-demo__icon tutorial-buttons-demo__icon--reject">${ICON_REJECT}</span>
+          <div>
+            <p class="tutorial-buttons-demo__label">Reject</p>
+            <p class="tutorial-buttons-demo__desc">A clear no -- this piece is out of the running.</p>
+          </div>
+        </div>
+        <div class="tutorial-buttons-demo__item">
+          <span class="tutorial-buttons-demo__icon tutorial-buttons-demo__icon--save">${ICON_SAVE}</span>
+          <div>
+            <p class="tutorial-buttons-demo__label">Save for later</p>
+            <p class="tutorial-buttons-demo__desc">Not ready to decide yet -- come back to it before you finalize.</p>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  {
+    render: () => `
+      <p class="tutorial-card__eyebrow">2 of 4</p>
+      <h2 class="detail-pane__title">Comparing artwork</h2>
+      <p class="detail-pane__meta" style="margin-bottom:14px">Not sure between two pieces? Open "Compare" on any artwork to see it side by side with up to three others before you decide.</p>
+      <img class="tutorial-gif" src="/assets/tutorial-compare-demo.gif" alt="Demonstration of comparing two artworks side by side" />
+    `,
+  },
+  {
+    render: () => `
+      <p class="tutorial-card__eyebrow">3 of 4</p>
+      <h2 class="detail-pane__title">Comments are required for Shortlist and Reject</h2>
+      <p class="detail-pane__meta">Before you can mark a piece as Shortlisted or Rejected, you'll need to leave a comment explaining your reasoning. Save for later never requires one.</p>
+      <p class="detail-pane__meta" style="margin-top:10px">You're never locked in -- you can always go back and edit your comment on any artwork later, from its Shortlisted, Rejected, or Save for Later tab.</p>
+    `,
+  },
+  {
+    render: () => `
+      <p class="tutorial-card__eyebrow">4 of 4</p>
+      <h2 class="detail-pane__title">Comments tab</h2>
+      <p class="detail-pane__meta">The Comments tab shows every comment any juror has left, on any artwork, newest first -- so you can see what your fellow jurors are noticing.</p>
+      <p class="detail-pane__meta" style="margin-top:10px">Click any comment there to jump straight to that artwork, where you can change your own vote or add your own comment.</p>
+    `,
+  },
+];
+
+function renderTutorialStep() {
+  const page = TUTORIAL_PAGES[tutorialStep];
+  const isLast = tutorialStep === TUTORIAL_PAGES.length - 1;
+  tutorialContent.innerHTML = `
+    ${page.render()}
+    <div class="tutorial-card__dots">
+      ${TUTORIAL_PAGES.map((_, i) => `<span class="tutorial-card__dot${i === tutorialStep ? ' is-active' : ''}"></span>`).join('')}
+    </div>
+    <button type="button" class="btn btn--primary btn--block tutorial-card__next" id="tutorialNextBtn">${isLast ? 'I understand' : 'Next'}</button>
+  `;
+  document.getElementById('tutorialNextBtn').addEventListener('click', () => {
+    if (isLast) {
+      closeTutorial();
+    } else {
+      tutorialStep += 1;
+      renderTutorialStep();
+    }
+  });
+}
+
+function openTutorial() {
+  tutorialStep = 0;
+  tutorialOverlay.hidden = false;
+  renderTutorialStep();
+}
+
+function closeTutorial() {
+  tutorialOverlay.hidden = true;
+  tutorialContent.innerHTML = '';
+}
+
+// ---------------------------------------------------------------------------
 // Init
 
 // setActiveTab() already calls refreshStatus() itself -- calling it again
@@ -1003,4 +1204,5 @@ function renderCompareFinalView() {
 // concurrent load on the backend for no benefit.
 if (auth) {
   setActiveTab('pending');
+  openTutorial();
 }

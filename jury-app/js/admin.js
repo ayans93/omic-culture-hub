@@ -2,9 +2,13 @@ import { juryApiCall, requireAuth, clearStoredAuth, escapeHtml, downloadAdminExp
 
 const auth = requireAuth('admin');
 
-// Shared label for a raw vote value ('love' / 'reject' / 'save_for_later' /
-// 'skip') wherever the admin dashboard shows an individual juror's vote.
-const VOTE_LABELS = { love: 'Loved', reject: 'Rejected', save_for_later: 'Saved for Later', skip: 'Skipped' };
+// Shared label for a raw vote value wherever the admin dashboard shows an
+// individual juror's vote. 'skip' is kept here (but nowhere else in this
+// app) purely so a historical skip still reads clearly in the submission
+// detail modal, the one place that still shows raw vote history
+// unfiltered -- see jury_admin_submission_detail in
+// 06_shortlist_rename_and_rank.sql.
+const VOTE_LABELS = { love: 'Shortlisted', reject: 'Rejected', save_for_later: 'Saved for Later', skip: 'Skipped (legacy)' };
 function voteLabel(vote) {
   return VOTE_LABELS[vote] || '—';
 }
@@ -117,7 +121,7 @@ async function loadResults() {
     if (tieFlag) {
       tieWrap.innerHTML = `
         <div class="tie-banner">
-          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at ${tieFlag.loveCount} Love votes
+          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at the cutoff rank,
           spanning ranks ${Math.min(...tieFlag.ranks)}–${Math.max(...tieFlag.ranks)}. This needs a manual decision — it is not resolved automatically.
         </div>
       `;
@@ -131,7 +135,7 @@ async function loadResults() {
         <table class="data-table">
           <thead>
             <tr>
-              <th>Rank</th><th>ID</th><th>Title</th>${jurorCols}<th>Loved</th><th>Rejected</th><th>Saved for Later</th><th>Skipped</th>
+              <th>Rank</th><th>ID</th><th>Title</th>${jurorCols}<th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th>
             </tr>
           </thead>
           <tbody>
@@ -150,10 +154,9 @@ async function loadResults() {
                     <td data-label="ID">${escapeHtml(r.id)}</td>
                     <td data-label="Title">${escapeHtml(r.title || '—')}</td>
                     ${jurorCells}
-                    <td data-label="Loved">${r.loveCount}</td>
+                    <td data-label="Shortlisted">${r.loveCount}</td>
                     <td data-label="Rejected">${r.rejectCount}</td>
                     <td data-label="Saved for Later">${r.savedForLaterCount}</td>
-                    <td data-label="Skipped">${r.skipCount}</td>
                   </tr>
                 `;
               })
@@ -161,7 +164,7 @@ async function loadResults() {
           </tbody>
         </table>
       </div>
-      <p class="empty-state" style="padding:8px 0;text-align:left">Highlighted rows are the current Top 20. A submission only appears ranked once every juror has voted on it. Ranking is by Love votes only.</p>
+      <p class="empty-state" style="padding:8px 0;text-align:left">Highlighted rows are the current Top 20. A submission only appears ranked once every juror has voted on it. Ranking is a weighted score (Shortlist +1, Save for Later +0.1, Reject −0.1).</p>
     `;
   } catch (err) {
     wrap.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load results.')}</p>`;
@@ -184,7 +187,7 @@ async function loadSubmissions() {
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>ID</th><th>Artist</th><th>Title</th><th>Medium</th><th>Year</th><th>Eligible</th><th>Reviews</th><th>Loved</th><th>Rejected</th><th>Saved for Later</th><th>Skipped</th><th>Comments</th><th>Rank</th></tr>
+            <tr><th>ID</th><th>Artist</th><th>Title</th><th>Medium</th><th>Year</th><th>Eligible</th><th>Reviews</th><th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th><th>Comments</th><th>Rank</th></tr>
           </thead>
           <tbody>
             ${result.submissions
@@ -198,10 +201,9 @@ async function loadSubmissions() {
                     <td data-label="Year">${escapeHtml(s.year || '—')}</td>
                     <td data-label="Eligible">${s.eligible ? 'Yes' : 'No'}</td>
                     <td data-label="Reviews">${s.reviewsCompleted}</td>
-                    <td data-label="Loved">${s.loveCount}</td>
+                    <td data-label="Shortlisted">${s.loveCount}</td>
                     <td data-label="Rejected">${s.rejectCount}</td>
                     <td data-label="Saved for Later">${s.savedForLaterCount}</td>
-                    <td data-label="Skipped">${s.skipCount}</td>
                     <td data-label="Comments">${s.commentCount > 0 ? `<span class="pill pill--open">${s.commentCount}</span>` : '—'}</td>
                     <td data-label="Rank">${s.rank || '—'}</td>
                   </tr>
@@ -301,7 +303,7 @@ async function loadJurors() {
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Name</th><th>Username</th><th>Progress</th><th>Loved</th><th>Rejected</th><th>Saved for Later</th><th>Skipped</th><th>Status</th><th></th></tr>
+            <tr><th>Name</th><th>Username</th><th>Progress</th><th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th><th>Status</th><th></th></tr>
           </thead>
           <tbody>
             ${result.jurors
@@ -311,10 +313,9 @@ async function loadJurors() {
                     <td data-label="Name">${escapeHtml(j.name)}</td>
                     <td data-label="Username">${escapeHtml(j.username)}</td>
                     <td data-label="Progress">${j.reviewsCompleted} / ${j.reviewsRequired}</td>
-                    <td data-label="Loved">${j.loveCount}</td>
+                    <td data-label="Shortlisted">${j.loveCount}</td>
                     <td data-label="Rejected">${j.rejectCount}</td>
                     <td data-label="Saved for Later">${j.savedForLaterCount}</td>
-                    <td data-label="Skipped">${j.skipCount}</td>
                     <td data-label="Status">${j.finalized ? '<span class="pill pill--locked">Finalized</span>' : '<span class="pill pill--open">In progress</span>'}</td>
                     <td data-label="">${j.finalized ? '<button type="button" class="btn btn--secondary unlock-btn">Unlock</button>' : ''}</td>
                   </tr>

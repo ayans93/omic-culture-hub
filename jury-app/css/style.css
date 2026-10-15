@@ -263,7 +263,6 @@ a { color: inherit; }
 .others-votes-row:last-child { border-bottom: none; }
 .vote-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .vote-pill--love { background: var(--love-tint); color: var(--love); }
-.vote-pill--skip { background: var(--error-tint); color: var(--muted); }
 .vote-pill--reject { background: var(--error-tint); color: var(--error); }
 .vote-pill--save_for_later { background: var(--orange-tint); color: var(--orange); }
 .vote-pill--pending { background: var(--cream-line); color: var(--muted); }
@@ -279,7 +278,6 @@ a { color: inherit; }
   margin-bottom: 16px;
 }
 .my-vote-banner--love { background: var(--love-tint); color: var(--love); }
-.my-vote-banner--skip { background: var(--cream-line); color: var(--muted); }
 .my-vote-banner--reject { background: var(--error-tint); color: var(--error); }
 .my-vote-banner--save_for_later { background: var(--orange-tint); color: var(--orange); }
 
@@ -362,6 +360,9 @@ a { color: inherit; }
 .action-grid { display: flex; flex-direction: column; gap: 10px; }
 .action-grid__row { display: flex; gap: 10px; }
 .action-grid__row .action-btn { flex: 1; }
+.action-grid__row--three .action-btn { flex: 1 1 0; }
+.action-grid__row--single { display: flex; }
+.action-grid__row--single .action-btn { flex: 1; }
 .action-row { display: flex; gap: 10px; }
 .action-btn {
   flex: 1;
@@ -386,7 +387,6 @@ a { color: inherit; }
 .action-btn--reject:hover:not(:disabled) { border-color: var(--error); color: var(--error); background: var(--error-tint); }
 .action-btn--save_for_later:hover:not(:disabled) { border-color: var(--orange); color: var(--orange); background: var(--orange-tint); }
 .action-btn--compare:hover:not(:disabled), .action-btn--compare.is-active { border-color: var(--blue); color: var(--blue); background: var(--blue-tint); }
-.action-btn--skip:hover:not(:disabled) { border-color: var(--muted); color: var(--ink); background: var(--cream); }
 
 .comment-box { margin-top: 14px; }
 .comment-box label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
@@ -400,8 +400,11 @@ a { color: inherit; }
   background: #fff;
   color: var(--ink);
   resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .comment-box textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-tint); }
+.comment-box textarea.is-invalid { border-color: var(--error); box-shadow: 0 0 0 3px var(--error-tint); }
+.comment-box__error { margin: 6px 0 0; font-size: 12.5px; color: var(--error); font-weight: 600; }
 .comment-box__save { margin-top: 8px; }
 
 /* State-switch view (an already-voted artwork opened from a list / tile) */
@@ -424,7 +427,6 @@ a { color: inherit; }
 .state-icon-btn.is-current--love { background: var(--love-tint); border-color: var(--love); color: var(--love); }
 .state-icon-btn.is-current--reject { background: var(--error-tint); border-color: var(--error); color: var(--error); }
 .state-icon-btn.is-current--save_for_later { background: var(--orange-tint); border-color: var(--orange); color: var(--orange); }
-.state-icon-btn.is-current--skip { background: var(--cream-line); border-color: var(--muted); color: var(--ink); }
 .state-icon-btn[disabled] { cursor: default; opacity: 1; }
 
 /* Submission detail modal (admin) */
@@ -543,7 +545,6 @@ a { color: inherit; }
 .review-item__state-btn.is-current--love { background: var(--love-tint); border-color: var(--love); color: var(--love); }
 .review-item__state-btn.is-current--reject { background: var(--error-tint); border-color: var(--error); color: var(--error); }
 .review-item__state-btn.is-current--save_for_later { background: var(--orange-tint); border-color: var(--orange); color: var(--orange); }
-.review-item__state-btn.is-current--skip { background: var(--cream-line); border-color: var(--muted); color: var(--ink); }
 
 .finalize-banner {
   background: var(--blue-tint);
@@ -807,3 +808,57 @@ a { color: inherit; }
 @media (max-width: 560px) {
   .toast-wrap { top: 10px; font-size: 13px; padding: 10px 16px; }
 }
+
+/* -------------------------------------------------------------------------
+   Comments tab -- every juror's comments across every artwork, newest
+   first, each row clickable through to that artwork. */
+.comment-feed-item {
+  background: var(--card);
+  border: 1px solid var(--cream-line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.comment-feed-item:hover { border-color: var(--blue); }
+.comment-feed-item__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.comment-feed-item__artwork { font-size: 14px; font-weight: 600; }
+.comment-feed-item__text { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; font-style: italic; overflow-wrap: anywhere; }
+.comment-feed-item__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); }
+
+/* -------------------------------------------------------------------------
+   Tutorial modal -- shown automatically on login, 4 pages, no backdrop or
+   X to dismiss early. Reuses .modal-overlay/.modal-card from the admin
+   submission modal, with its own width/content styling layered on top. */
+.tutorial-card { max-width: 440px; text-align: left; }
+.tutorial-card__eyebrow {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tutorial-buttons-demo { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.tutorial-buttons-demo__item { display: flex; align-items: flex-start; gap: 12px; }
+.tutorial-buttons-demo__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tutorial-buttons-demo__icon svg { width: 18px; height: 18px; }
+.tutorial-buttons-demo__icon--love { background: var(--love-tint); color: var(--love); }
+.tutorial-buttons-demo__icon--reject { background: var(--error-tint); color: var(--error); }
+.tutorial-buttons-demo__icon--save { background: var(--orange-tint); color: var(--orange); }
+.tutorial-buttons-demo__label { margin: 0 0 2px; font-size: 14px; font-weight: 700; }
+.tutorial-buttons-demo__desc { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.tutorial-gif { width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--cream-line); display: block; }
+.tutorial-card__dots { display: flex; gap: 6px; justify-content: center; margin: 22px 0 14px; }
+.tutorial-card__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cream-line); }
+.tutorial-card__dot.is-active { background: var(--ink); }
+.tutorial-card__next { margin-top: 0; }

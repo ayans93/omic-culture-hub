@@ -35,7 +35,7 @@
           Yet to Evaluate <span class="juror-tab__count" id="countPending">—</span>
         </button>
         <button type="button" class="juror-tab" id="tabBtnLoved" data-tab="loved">
-          Loved <span class="juror-tab__count" id="countLoved">—</span>
+          Shortlisted <span class="juror-tab__count" id="countLoved">—</span>
         </button>
         <button type="button" class="juror-tab" id="tabBtnRejected" data-tab="rejected">
           Rejected <span class="juror-tab__count" id="countRejected">—</span>
@@ -43,11 +43,11 @@
         <button type="button" class="juror-tab" id="tabBtnSavedForLater" data-tab="savedForLater">
           Save for Later <span class="juror-tab__count" id="countSavedForLater">—</span>
         </button>
-        <button type="button" class="juror-tab" id="tabBtnSkipped" data-tab="skipped">
-          Skipped <span class="juror-tab__count" id="countSkipped">—</span>
-        </button>
         <button type="button" class="juror-tab" id="tabBtnAll" data-tab="all">
           All Artwork <span class="juror-tab__count" id="countAll">—</span>
+        </button>
+        <button type="button" class="juror-tab" id="tabBtnComments" data-tab="comments">
+          Comments <span class="juror-tab__count" id="countComments">—</span>
         </button>
       </div>
 
@@ -55,8 +55,8 @@
       <section class="juror-panel" id="panelLoved" hidden></section>
       <section class="juror-panel" id="panelRejected" hidden></section>
       <section class="juror-panel" id="panelSavedForLater" hidden></section>
-      <section class="juror-panel" id="panelSkipped" hidden></section>
       <section class="juror-panel" id="panelAll" hidden></section>
+      <section class="juror-panel" id="panelComments" hidden></section>
 
     </main>
   </div>
@@ -77,6 +77,15 @@
     <div class="modal-card compare-card">
       <button type="button" class="zoom-close compare-card__close" id="compareCloseBtn" aria-label="Close compare">&times;</button>
       <div id="compareContent"></div>
+    </div>
+  </div>
+
+  <!-- Tutorial overlay -- shown automatically on login, walks through 4
+       pages, no backdrop-click or X to dismiss early (deliberately -- see
+       juror.js). -->
+  <div class="modal-overlay" id="tutorialOverlay" hidden>
+    <div class="modal-card tutorial-card">
+      <div id="tutorialContent"></div>
     </div>
   </div>
 
