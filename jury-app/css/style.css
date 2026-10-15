@@ -775,3 +775,35 @@ a { color: inherit; }
   .action-grid__row { flex-direction: column; }
   .compare-view--pair { flex-wrap: wrap; }
 }
+
+/* -------------------------------------------------------------------------
+   Toast -- brief "<artwork> has been moved to <state>" confirmation banner,
+   fixed to the top of the viewport so it reads above the zoom/compare
+   overlays (z-index 50) no matter which panel is open. */
+.toast-wrap {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translate(-50%, -16px);
+  z-index: 200;
+  max-width: calc(100% - 32px);
+  padding: 11px 20px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(23, 20, 15, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast-wrap.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 560px) {
+  .toast-wrap { top: 10px; font-size: 13px; padding: 10px 16px; }
+}

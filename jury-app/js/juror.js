@@ -33,6 +33,8 @@ const compareOverlay = document.getElementById('compareOverlay');
 const compareContent = document.getElementById('compareContent');
 const compareCloseBtn = document.getElementById('compareCloseBtn');
 
+const toastWrap = document.getElementById('toastWrap');
+
 if (auth) jurorNameEl.textContent = auth.name || auth.username;
 
 logoutBtn.addEventListener('click', () => {
@@ -65,6 +67,30 @@ const VOTE_META = {
   skip: { label: 'Skipped', icon: ICON_SKIP, badgeIcon: ICON_SKIP_SOLID, verb: 'You skipped this piece' },
 };
 const VOTE_TO_TAB = { love: 'loved', reject: 'rejected', save_for_later: 'savedForLater', skip: 'skipped' };
+
+// ---------------------------------------------------------------------------
+// Toast -- a brief confirmation banner at the top of the screen, shown only
+// when an artwork's vote state actually changes (never for a comment-only
+// save). A single timer means a rapid second state change restarts the
+// auto-dismiss clock instead of letting two toasts overlap or the first one
+// vanish mid-read.
+
+let toastTimeout = null;
+
+function showToast(message) {
+  if (!toastWrap) return;
+  clearTimeout(toastTimeout);
+  toastWrap.textContent = message;
+  toastWrap.classList.add('is-visible');
+  toastTimeout = setTimeout(() => {
+    toastWrap.classList.remove('is-visible');
+  }, 3200);
+}
+
+function showVoteToast(title, vote) {
+  const meta = VOTE_META[vote];
+  showToast(`${title || 'This artwork'} has been moved to ${meta ? meta.label : vote}`);
+}
 
 // ---------------------------------------------------------------------------
 // Zoom overlay
@@ -343,24 +369,25 @@ function renderFreshEvalDetail(panelEl, submission, othersVotes, opts, artworkPa
   const compareBtn = document.getElementById('compareBtn');
   const skipBtn = document.getElementById('skipBtn');
 
-  loveBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission.id, 'love', commentInput.value));
-  rejectBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission.id, 'reject', commentInput.value));
-  saveBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission.id, 'save_for_later', commentInput.value));
-  skipBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission.id, 'skip', commentInput.value));
+  loveBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'love', commentInput.value));
+  rejectBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'reject', commentInput.value));
+  saveBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'save_for_later', commentInput.value));
+  skipBtn.addEventListener('click', () => castVoteFreshEval(panelEl, submission, 'skip', commentInput.value));
   compareBtn.addEventListener('click', () => openCompareModal(submission));
 }
 
-async function castVoteFreshEval(panelEl, submissionId, vote, comment) {
+async function castVoteFreshEval(panelEl, submission, vote, comment) {
   const buttons = panelEl.querySelectorAll('.action-btn');
   buttons.forEach((el) => { el.disabled = true; });
   try {
-    const result = await juryApiCall('jurorVote', { ...auth, submissionId, vote, comment: comment || '' });
+    const result = await juryApiCall('jurorVote', { ...auth, submissionId: submission.id, vote, comment: comment || '' });
     if (!result || !result.ok) {
       panelEl.insertAdjacentHTML('beforeend', `<p class="empty-state">${escapeHtml((result && result.error) || 'Could not save your reaction. Please try again.')}</p>`);
       buttons.forEach((el) => { el.disabled = false; });
       return;
     }
     allArtworksCache = null; // this juror's vote state changed -- stale badges/filters otherwise
+    showVoteToast(submission.title, vote);
     await refreshStatus();
     // Whichever tab this was opened from, casting a fresh vote always
     // continues the normal priority queue on "Yet to Evaluate".
@@ -420,14 +447,14 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
     btn.addEventListener('click', () => {
       const newVote = btn.dataset.vote;
       const commentEditInput = document.getElementById('commentEditInput');
-      switchVoteState(panelEl, submission, newVote, commentEditInput.value, opts);
+      switchVoteState(panelEl, submission, newVote, commentEditInput.value, opts, vote);
     });
   });
 
   const saveCommentBtn = document.getElementById('saveCommentBtn');
   saveCommentBtn.addEventListener('click', () => {
     const commentEditInput = document.getElementById('commentEditInput');
-    switchVoteState(panelEl, submission, vote, commentEditInput.value, opts);
+    switchVoteState(panelEl, submission, vote, commentEditInput.value, opts, vote);
   });
 
   if (opts.context === 'pending') {
@@ -439,7 +466,7 @@ function renderStateSwitchDetail(panelEl, submission, myVote, othersVotes, opts,
   }
 }
 
-async function switchVoteState(panelEl, submission, newVote, comment, opts) {
+async function switchVoteState(panelEl, submission, newVote, comment, opts, oldVote) {
   panelEl.querySelectorAll('button').forEach((el) => { el.disabled = true; });
   try {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId: submission.id, vote: newVote, comment: comment || '' });
@@ -449,6 +476,7 @@ async function switchVoteState(panelEl, submission, newVote, comment, opts) {
       return;
     }
     allArtworksCache = null;
+    if (newVote !== oldVote) showVoteToast(submission.title, newVote);
     await refreshStatus();
     const fresh = await juryApiCall('jurorSubmission', { ...auth, id: submission.id });
     if (fresh && fresh.ok) {
@@ -638,6 +666,7 @@ async function switchRowVoteState(key, submissionId, newVote) {
     const result = await juryApiCall('jurorVote', { ...auth, submissionId, vote: newVote, comment });
     if (!result || !result.ok) return;
     allArtworksCache = null;
+    showVoteToast(current ? current.title : '', newVote);
     await refreshStatus();
     tabs[key].load();
   } catch (err) {
