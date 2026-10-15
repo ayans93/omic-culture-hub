@@ -23,6 +23,7 @@ const FORM_TYPE_MAP = {
   jurorSubmission: { fn: 'jury_submission', toParams: (p) => ({ p_username: p.username, p_password: p.password, p_id: p.id }) },
   jurorVote: { fn: 'jury_vote', toParams: (p) => ({ p_username: p.username, p_password: p.password, p_submission_id: p.submissionId, p_vote: p.vote, p_comment: p.comment ?? '' }) },
   jurorReview: { fn: 'jury_review', toParams: (p) => ({ p_username: p.username, p_password: p.password }) },
+  jurorAllArtworks: { fn: 'jury_all_artworks', toParams: (p) => ({ p_username: p.username, p_password: p.password }) },
   jurorFinalize: { fn: 'jury_finalize', toParams: (p) => ({ p_username: p.username, p_password: p.password }) },
   adminOverview: { fn: 'jury_admin_overview', toParams: (p) => ({ p_username: p.username, p_password: p.password }) },
   adminSubmissions: { fn: 'jury_admin_submissions', toParams: (p) => ({ p_username: p.username, p_password: p.password }) },

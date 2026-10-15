@@ -35,14 +35,26 @@
         <button type="button" class="juror-tab" id="tabBtnLoved" data-tab="loved">
           Loved <span class="juror-tab__count" id="countLoved">—</span>
         </button>
+        <button type="button" class="juror-tab" id="tabBtnRejected" data-tab="rejected">
+          Rejected <span class="juror-tab__count" id="countRejected">—</span>
+        </button>
+        <button type="button" class="juror-tab" id="tabBtnSavedForLater" data-tab="savedForLater">
+          Save for Later <span class="juror-tab__count" id="countSavedForLater">—</span>
+        </button>
         <button type="button" class="juror-tab" id="tabBtnSkipped" data-tab="skipped">
           Skipped <span class="juror-tab__count" id="countSkipped">—</span>
+        </button>
+        <button type="button" class="juror-tab" id="tabBtnAll" data-tab="all">
+          All Artwork <span class="juror-tab__count" id="countAll">—</span>
         </button>
       </div>
 
       <section class="juror-panel" id="panelPending"></section>
       <section class="juror-panel" id="panelLoved" hidden></section>
+      <section class="juror-panel" id="panelRejected" hidden></section>
+      <section class="juror-panel" id="panelSavedForLater" hidden></section>
       <section class="juror-panel" id="panelSkipped" hidden></section>
+      <section class="juror-panel" id="panelAll" hidden></section>
 
     </main>
   </div>
@@ -55,6 +67,14 @@
       <button type="button" id="zoomOutBtn" aria-label="Zoom out">&minus;</button>
       <button type="button" id="zoomResetBtn" aria-label="Reset zoom">&#8634;</button>
       <button type="button" id="zoomInBtn" aria-label="Zoom in">+</button>
+    </div>
+  </div>
+
+  <!-- Compare overlay -->
+  <div class="modal-overlay" id="compareOverlay" hidden>
+    <div class="modal-card compare-card">
+      <button type="button" class="zoom-close compare-card__close" id="compareCloseBtn" aria-label="Close compare">&times;</button>
+      <div id="compareContent"></div>
     </div>
   </div>
 
