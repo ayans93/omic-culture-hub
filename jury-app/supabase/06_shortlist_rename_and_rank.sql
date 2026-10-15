@@ -397,19 +397,25 @@ begin
     group by s.id, s.title, s.eligible
   ),
   ranked_cte as (
+    -- Live leaderboard: every eligible submission is ranked on its current
+    -- score as soon as any vote is in, not just once every juror has
+    -- finished it -- an unreviewed submission simply scores 0 (same as any
+    -- vote nobody has cast yet) and ranks accordingly until real votes
+    -- move it. reviewsCompleted/reviewsRequired still travel with each row
+    -- so the frontend can mark a rank "final" only once they're equal.
     -- Competition ("1224") ranking: submissions tied on score share the
     -- same rank, and the next distinct score skips ahead accordingly --
     -- e.g. four submissions tied at the top all rank 1, and the next one
     -- down ranks 5, not 2. RANK() (unlike ROW_NUMBER()) does this natively
     -- as long as score is the only ORDER BY key feeding it.
     select *, rank() over (order by score desc) as rnk
-    from per_sub where eligible and reviews_completed = jcount
+    from per_sub where eligible
   )
   select coalesce(jsonb_agg(jsonb_build_object(
       'id', id, 'title', title, 'eligible', eligible, 'reviewsCompleted', reviews_completed,
       'reviewsRequired', jcount, 'loveCount', love_count, 'rejectCount', reject_count,
       'savedForLaterCount', save_for_later_count,
-      'byJuror', by_juror, 'rank', rnk
+      'byJuror', by_juror, 'rank', rnk, 'final', reviews_completed = jcount
     ) order by rnk, title), '[]'::jsonb) into ranked
   from ranked_cte;
 
@@ -429,16 +435,18 @@ begin
       'id', id, 'title', title, 'eligible', eligible, 'reviewsCompleted', reviews_completed,
       'reviewsRequired', jcount, 'loveCount', love_count, 'rejectCount', reject_count,
       'savedForLaterCount', save_for_later_count,
-      'byJuror', by_juror, 'rank', null
+      'byJuror', by_juror, 'rank', null, 'final', false
     ) order by title), '[]'::jsonb) into unranked
-  from per_sub where not (eligible and reviews_completed = jcount);
+  from per_sub where not eligible;
 
-  -- Tie-at-the-cutoff detection: lay out eligible, fully-reviewed
-  -- submissions in an arbitrary (ungapped) position order and compare the
-  -- score at position 20 against position 21. If they're equal, the Top 20
-  -- line falls in the middle of a tied group -- flag the single rank that
-  -- whole group shares (competition ranking means they all share one rank
-  -- number) plus every submission id in it, for a manual call.
+  -- Tie-at-the-cutoff detection: lay out every eligible submission's
+  -- current live score in an arbitrary (ungapped) position order and
+  -- compare the score at position 20 against position 21. If they're
+  -- equal, the Top 20 line falls in the middle of a tied group -- flag the
+  -- single rank that whole group shares (competition ranking means they
+  -- all share one rank number) plus every submission id in it, for a
+  -- manual call. This runs against the live leaderboard too, so a tie flag
+  -- can appear and disappear as votes come in, same as the ranks do.
   with per_sub as (
     select s.id, s.title, s.eligible,
       count(v.id) as reviews_completed,
@@ -450,7 +458,7 @@ begin
     group by s.id, s.title, s.eligible
   ),
   eligible_complete as (
-    select * from per_sub where eligible and reviews_completed = jcount
+    select * from per_sub where eligible
   ),
   pos_cte as (
     select *, row_number() over (order by score desc) as pos
@@ -476,7 +484,7 @@ begin
       group by s.id, s.title, s.eligible
     ),
     eligible_complete as (
-      select * from per_sub where eligible and reviews_completed = jcount
+      select * from per_sub where eligible
     )
     select
       (select count(*) + 1 from eligible_complete where score > rank20_score),
@@ -521,17 +529,21 @@ begin
     group by s.id
   ),
   ranked_cte as (
-    -- Same competition ("1224") ranking as jury_admin_results: ties share
-    -- a rank and the next distinct score skips ahead.
+    -- Live leaderboard, same as jury_admin_results: every eligible
+    -- submission ranks on its current score right away, not just once
+    -- every juror has reviewed it. Same competition ("1224") ranking --
+    -- ties share a rank and the next distinct score skips ahead.
     select p.id, rank() over (order by p.score desc) as rnk
     from per_sub p join submissions s2 on s2.id = p.id
-    where s2.eligible and p.reviews_completed = jcount
+    where s2.eligible
   )
   select coalesce(jsonb_agg(jsonb_build_object(
       'id', s.id, 'artistName', s.artist_name, 'title', s.title, 'medium', s.medium, 'year', s.year,
-      'eligible', s.eligible, 'reviewsCompleted', p.reviews_completed, 'loveCount', p.love_count,
+      'eligible', s.eligible, 'reviewsCompleted', p.reviews_completed, 'reviewsRequired', jcount,
+      'loveCount', p.love_count,
       'rejectCount', p.reject_count, 'savedForLaterCount', p.save_for_later_count,
       'commentCount', p.comment_count, 'rank', r.rnk,
+      'final', coalesce(p.reviews_completed = jcount, false),
       'inTop20', coalesce(r.rnk <= 20, false)
     ) order by s.id), '[]'::jsonb) into out_json
   from submissions s
@@ -591,6 +603,7 @@ drop function if exists jury_admin_export_rows(text, text);
 create or replace function jury_admin_export_rows(p_username text, p_password text)
 returns table (
   rank int,
+  rank_is_final text,
   submission_id text,
   artist_name text,
   artwork_title text,
@@ -625,16 +638,18 @@ begin
     group by s.id, s.artist_name, s.title, s.eligible
   ),
   ranked_cte as (
-    -- Same competition ("1224") ranking as jury_admin_results /
-    -- jury_admin_submissions: ranked only among eligible, fully-reviewed
-    -- submissions (an ineligible or still-in-progress one never occupies a
-    -- slot in the ordering), and ties share a rank while the next distinct
-    -- score skips ahead.
+    -- Live leaderboard, same as jury_admin_results / jury_admin_submissions:
+    -- every eligible submission ranks on its current score right away (an
+    -- ineligible one never occupies a slot in the ordering), and ties
+    -- share a rank while the next distinct score skips ahead. rank_is_final
+    -- below tells a reader of the CSV whether a given row's rank is based
+    -- on every juror's vote or is still provisional.
     select sid, rank() over (order by score desc) as rnk
-    from per_sub where selig and reviews_completed = jcount
+    from per_sub where selig
   )
   select
     r.rnk::int,
+    case when p.reviews_completed = jcount then 'Yes' else 'No' end,
     p.sid,
     p.sname,
     p.stitle,

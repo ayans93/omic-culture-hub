@@ -135,7 +135,7 @@ async function loadResults() {
         <table class="data-table">
           <thead>
             <tr>
-              <th>Rank</th><th>ID</th><th>Title</th>${jurorCols}<th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th>
+              <th>Rank</th><th>Reviewed</th><th>ID</th><th>Title</th>${jurorCols}<th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th>
             </tr>
           </thead>
           <tbody>
@@ -148,9 +148,13 @@ async function loadResults() {
                     return `<td data-label="${escapeHtml(j.name)}">${voteLabel(v)}</td>`;
                   })
                   .join('');
+                const rankCell = r.rank
+                  ? `${r.rank}${r.final ? '' : ' <span class="rank-live-badge" title="Provisional -- not every juror has reviewed this submission yet">live</span>'}`
+                  : '—';
                 return `
                   <tr class="${inTop20 ? 'is-top20' : ''}">
-                    <td data-label="Rank">${r.rank || '—'}</td>
+                    <td data-label="Rank">${rankCell}</td>
+                    <td data-label="Reviewed">${r.reviewsCompleted} / ${r.reviewsRequired}</td>
                     <td data-label="ID">${escapeHtml(r.id)}</td>
                     <td data-label="Title">${escapeHtml(r.title || '—')}</td>
                     ${jurorCells}
@@ -164,7 +168,7 @@ async function loadResults() {
           </tbody>
         </table>
       </div>
-      <p class="empty-state" style="padding:8px 0;text-align:left">Highlighted rows are the current Top 20. A submission only appears ranked once every juror has voted on it. Ranking is a weighted score (Shortlist +1, Save for Later +0.1, Reject −0.1).</p>
+      <p class="empty-state" style="padding:8px 0;text-align:left">Highlighted rows are the current Top 20. Rank updates live as votes come in -- a "live" tag means the rank is provisional because not every juror has reviewed that submission yet; it becomes final once they have. Ranking is a weighted score (Shortlist +1, Save for Later +0.1, Reject −0.1).</p>
     `;
   } catch (err) {
     wrap.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load results.')}</p>`;
@@ -191,8 +195,11 @@ async function loadSubmissions() {
           </thead>
           <tbody>
             ${result.submissions
-              .map(
-                (s) => `
+              .map((s) => {
+                const rankCell = s.rank
+                  ? `${s.rank}${s.final ? '' : ' <span class="rank-live-badge" title="Provisional -- not every juror has reviewed this submission yet">live</span>'}`
+                  : '—';
+                return `
                   <tr class="${s.inTop20 ? 'is-top20' : ''} submission-row" data-id="${escapeHtml(s.id)}">
                     <td data-label="ID">${escapeHtml(s.id)}</td>
                     <td data-label="Artist">${escapeHtml(s.artistName || '—')}</td>
@@ -200,20 +207,20 @@ async function loadSubmissions() {
                     <td data-label="Medium">${escapeHtml(s.medium || '—')}</td>
                     <td data-label="Year">${escapeHtml(s.year || '—')}</td>
                     <td data-label="Eligible">${s.eligible ? 'Yes' : 'No'}</td>
-                    <td data-label="Reviews">${s.reviewsCompleted}</td>
+                    <td data-label="Reviews">${s.reviewsCompleted} / ${s.reviewsRequired}</td>
                     <td data-label="Shortlisted">${s.loveCount}</td>
                     <td data-label="Rejected">${s.rejectCount}</td>
                     <td data-label="Saved for Later">${s.savedForLaterCount}</td>
                     <td data-label="Comments">${s.commentCount > 0 ? `<span class="pill pill--open">${s.commentCount}</span>` : '—'}</td>
-                    <td data-label="Rank">${s.rank || '—'}</td>
+                    <td data-label="Rank">${rankCell}</td>
                   </tr>
-                `
-              )
+                `;
+              })
               .join('')}
           </tbody>
         </table>
       </div>
-      <p class="empty-state" style="padding:8px 0;text-align:left">Click any row to see the full artwork, its votes, and any juror comments. To add or change submissions, edit the Submissions tab in the Jury Sheet directly.</p>
+      <p class="empty-state" style="padding:8px 0;text-align:left">Click any row to see the full artwork, its votes, and any juror comments. Rank updates live as votes come in -- a "live" tag means not every juror has reviewed that submission yet. To add or change submissions, edit the Submissions tab in the Jury Sheet directly.</p>
     `;
     wrap.querySelectorAll('.submission-row').forEach((row) => {
       row.addEventListener('click', () => openSubmissionModal(row.dataset.id));
