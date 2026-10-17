@@ -72,6 +72,15 @@ var NEWTON_SHEET_TAB_NAME = 'Sheet1';
 var LINOCUT_WORKSHOP_SHEET_ID = '17TAjudExG1oB943qrMzxigPxaNhlyO7Y8M9BEE2T3eQ';
 var LINOCUT_WORKSHOP_SHEET_TAB_NAME = 'Registrations';
 
+// The "Unspoken Workshop Registrations" tracking spreadsheet. Same deal as
+// the other per-event sheets above: the account this script runs as needs
+// edit access to it. Its tab is named "Registrations", not after the
+// spreadsheet itself -- columns are Name, Email, Phone, Registration
+// timestamp, Paid?.
+// https://docs.google.com/spreadsheets/d/17oedhPau1v56DFFNNKLhU-475oHuA_KSdaAPqiE4mRA
+var UNSPOKEN_WORKSHOP_SHEET_ID = '17oedhPau1v56DFFNNKLhU-475oHuA_KSdaAPqiE4mRA';
+var UNSPOKEN_WORKSHOP_SHEET_TAB_NAME = 'Registrations';
+
 // Newton has 50 confirmed seats, then a 30-person waitlist (80 total)
 // before registrations close.
 var NEWTON_CONFIRMED_SEATS = 50;
@@ -156,6 +165,20 @@ function handleRegistration(params) {
     }
   }
 
+  // 2b. Same thing, for the Unspoken Workshop tracking spreadsheet.
+  if (eventName === 'UNSPOKEN: Reimagining the Portrait') {
+    try {
+      appendUnspokenWorkshopRegistrationToSheet_({
+        name: name,
+        email: email,
+        phone: phone,
+        timestamp: timestamp,
+      });
+    } catch (err) {
+      Logger.log('appendUnspokenWorkshopRegistrationToSheet_ failed: ' + err);
+    }
+  }
+
   // 3. Confirm the registration to the person who just signed up. This is
   // best-effort: if it fails for any reason (e.g. a malformed address that
   // slipped past client-side validation), the team notification above has
@@ -192,6 +215,35 @@ function handleRegistration(params) {
 // pre-built row has been used.
 function appendLinocutWorkshopRegistrationToSheet_(info) {
   var sheet = SpreadsheetApp.openById(LINOCUT_WORKSHOP_SHEET_ID).getSheetByName(LINOCUT_WORKSHOP_SHEET_TAB_NAME);
+  if (!sheet) return;
+
+  var lastRow = sheet.getLastRow();
+  var targetRow = -1;
+
+  if (lastRow >= 2) {
+    var names = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < names.length; i++) {
+      if (!names[i][0]) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    sheet.appendRow([info.name, info.email, info.phone, info.timestamp, false]);
+    return;
+  }
+
+  sheet.getRange(targetRow, 1, 1, 4).setValues([[info.name, info.email, info.phone, info.timestamp]]);
+}
+
+// Writes a registration's Name/Email/Phone/Timestamp into the Unspoken
+// Workshop tracking spreadsheet (tab "Registrations"). Same fill-the-
+// template-then-append-past-it behaviour as
+// appendLinocutWorkshopRegistrationToSheet_ above.
+function appendUnspokenWorkshopRegistrationToSheet_(info) {
+  var sheet = SpreadsheetApp.openById(UNSPOKEN_WORKSHOP_SHEET_ID).getSheetByName(UNSPOKEN_WORKSHOP_SHEET_TAB_NAME);
   if (!sheet) return;
 
   var lastRow = sheet.getLastRow();
@@ -920,6 +972,25 @@ function test_handleLinocutWorkshopRegistration() {
     origin: 'staging',
     timestamp: new Date().toISOString(),
     event: 'Linocut Workshop',
+    name: 'Authorization test -- clear me',
+    phone: '+971500000000',
+    email: TEST_RECIPIENT_EMAIL,
+  });
+}
+
+// One-time helper for authorizing this script's access to the Unspoken
+// Workshop sheet. Run THIS function (not handleRegistration directly --
+// same reasoning as the other test_* helpers in this file). Sends one real
+// test email to TEST_RECIPIENT_EMAIL (standing in for both the team and
+// the registrant) and fills in one row of the Unspoken Workshop sheet --
+// clearly labelled "Authorization test", safe to clear afterward (clear
+// the cells rather than deleting the row, so the sheet's FALSE/Paid?
+// template stays intact).
+function test_handleUnspokenWorkshopRegistration() {
+  handleRegistration({
+    origin: 'staging',
+    timestamp: new Date().toISOString(),
+    event: 'UNSPOKEN: Reimagining the Portrait',
     name: 'Authorization test -- clear me',
     phone: '+971500000000',
     email: TEST_RECIPIENT_EMAIL,
