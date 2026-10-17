@@ -17,6 +17,7 @@ export default defineConfig({
         videoArtTalk: resolve(__dirname, 'video-art-talk.html'),
         newton: resolve(__dirname, 'newton.html'),
         linocutWorkshop: resolve(__dirname, 'linocut-workshop.html'),
+        unspokenWorkshop: resolve(__dirname, 'unspoken-workshop.html'),
         cafe: resolve(__dirname, 'cafe.html'),
         shows: resolve(__dirname, 'shows.html'),
         thankYou: resolve(__dirname, 'thank-you.html'),
