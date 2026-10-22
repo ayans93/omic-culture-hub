@@ -49,20 +49,37 @@
     </div>
   </header>
 
-  <main class="layout layout--split-scroll">
+  <main class="layout">
 
-    <div class="content-scroll">
     <section class="content content--top">
       <div class="eyebrow-badge"><span class="dot dot--orange"></span>Open Call</div>
 
       <img class="poster" src="/posters/omic-art-contest-shared-ground.jpg" alt="Call for Artists — Shared Ground. OMIC Art Prize 2026. Apply now, deadline 20 October 2026." />
     </section>
 
-    <section class="content content--bottom">
+    <aside class="sidebar" id="contact">
+      <div class="register-card">
+        <h2 class="register-card__title">Know More</h2>
+        <p class="register-card__subtitle">Submissions are now closed. Please contact us for more information.</p>
 
-      <button type="button" id="artworkJumpToFormApplyNow" class="btn btn--primary btn--block" data-jump-to-field="artistName">
-        Apply Now
-      </button>
+        <div class="contact-list">
+          <a class="register-card__location" href="tel:+97143983354">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>+971 4 398 3354</span>
+          </a>
+          <a class="register-card__location" href="https://wa.me/971561857647" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-4.1-1.05L3 20l1.1-5.3A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+            <span>+971 56 185 7647</span>
+          </a>
+          <a class="register-card__location" href="mailto:gallery@omic.spot">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+            <span>gallery@omic.spot</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content content--bottom">
 
       <h1 class="title">OMIC Art <span class="accent-blue">Prize 2026</span></h1>
 
@@ -153,10 +170,6 @@
         </div>
       </div>
 
-      <button type="button" id="artworkJumpToFormGuidelines" class="btn btn--primary btn--block btn--bottom" data-jump-to-field="artistName">
-        Apply
-      </button>
-
       <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Jury <span class="accent-blue">Members</span></h2>
       <ul class="profile-grid profile-grid--compact">
         <li class="profile-card">
@@ -226,138 +239,9 @@
         </li>
       </ul>
 
-      <button type="button" id="artworkJumpToFormBottom" class="btn btn--primary btn--block btn--bottom" data-jump-to-field="artistName">
-        Apply
-      </button>
     </section>
-    </div>
-
-    <aside class="sidebar sidebar--flow">
-      <div class="register-card" id="artworkFormCard">
-        <h2 class="register-card__title">Submit your artwork</h2>
-        <p class="register-card__subtitle">Fill in your details and upload your artwork below.</p>
-
-        <form id="artworkForm" novalidate>
-          <div class="field">
-            <label for="artistName">Full Name</label>
-            <input type="text" id="artistName" name="artistName" placeholder="Your full name" autocomplete="name" />
-            <p class="error-message" id="artistNameError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistPhone">Mobile Number</label>
-            <input type="tel" id="artistPhone" name="artistPhone" placeholder="+1 234 567 8900" autocomplete="tel" />
-            <p class="field-hint">Include your country code</p>
-            <p class="error-message" id="artistPhoneError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistEmail">Email Address</label>
-            <input type="email" id="artistEmail" name="artistEmail" placeholder="you@example.com" autocomplete="email" />
-            <p class="error-message" id="artistEmailError"></p>
-          </div>
-
-          <div class="field">
-            <label for="uaeResident">Are you a UAE resident?</label>
-            <select id="uaeResident" name="uaeResident">
-              <option value="" selected disabled>Select an option</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-            <p class="error-message" id="uaeResidentError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artworkTitle">Artwork title</label>
-            <input type="text" id="artworkTitle" name="artworkTitle" placeholder="Title of your artwork" />
-            <p class="error-message" id="artworkTitleError"></p>
-          </div>
-
-          <div class="field">
-            <label for="discipline">Discipline</label>
-            <select id="discipline" name="discipline">
-              <option value="" selected disabled>Select a discipline</option>
-              <option value="Painting">Painting</option>
-              <option value="Sculpture">Sculpture</option>
-              <option value="Installation">Installation</option>
-            </select>
-            <p class="error-message" id="disciplineError"></p>
-          </div>
-
-          <div class="field">
-            <label for="mediumMaterial">Medium / Material</label>
-            <input type="text" id="mediumMaterial" name="mediumMaterial" placeholder="e.g. Oil on canvas" />
-            <p class="error-message" id="mediumMaterialError"></p>
-          </div>
-
-          <div class="field">
-            <label for="dimensions">Dimensions</label>
-            <input type="text" id="dimensions" name="dimensions" placeholder="e.g. 60 x 90 cm" />
-            <p class="error-message" id="dimensionsError"></p>
-          </div>
-
-          <div class="field">
-            <label for="yearCompleted">Year of Completion</label>
-            <input type="text" id="yearCompleted" name="yearCompleted" placeholder="e.g. 2026" inputmode="numeric" />
-            <p class="error-message" id="yearCompletedError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistStatement">Artist Statement</label>
-            <textarea id="artistStatement" name="artistStatement" placeholder="Tell us about this artwork" rows="4"></textarea>
-            <p class="field-counter" id="artistStatementCounter">0/150 words</p>
-            <p class="error-message" id="artistStatementError"></p>
-          </div>
-
-          <div class="field">
-            <label for="artistBio">Short Artist Biography</label>
-            <textarea id="artistBio" name="artistBio" placeholder="Tell us about yourself" rows="4"></textarea>
-            <p class="error-message" id="artistBioError"></p>
-          </div>
-
-          <div class="field field--file">
-            <label for="artworkFile">Upload Your Artwork</label>
-            <input type="file" id="artworkFile" name="artworkFile" class="field-file-input" accept=".jpeg,.jpg,.png,.pdf,.svg,.avif,image/jpeg,image/png,image/svg+xml,image/avif,application/pdf" />
-            <p class="field-hint">Accepted formats: JPEG, PNG, PDF, SVG, AVIF</p>
-            <p class="error-message" id="artworkFileError"></p>
-          </div>
-
-          <div class="field">
-            <label class="field-checkbox">
-              <input type="checkbox" id="exhibitionConsent" name="exhibitionConsent" />
-              <span class="field-checkbox__label">I agree to the <a href="/documents/omic-art-prize-2026-rules-and-regulations.pdf" id="rulesModalTrigger">Rules &amp; Regulations</a> of the art competition.</span>
-            </label>
-          </div>
-
-          <button type="submit" id="artworkSubmit" class="btn btn--primary btn--block" disabled>Apply</button>
-        </form>
-      </div>
-    </aside>
 
   </main>
-
-  <div class="overlay" id="rulesModal" hidden>
-    <div class="pdf-modal-card">
-      <div class="pdf-modal-header">
-        <h2 class="pdf-modal-title">Rules &amp; Regulations</h2>
-        <div class="pdf-modal-actions">
-          <a
-            class="btn btn--secondary pdf-modal-download"
-            href="/documents/omic-art-prize-2026-rules-and-regulations.pdf"
-            download="OMIC Art Prize 2026 - Rules and Regulations.pdf"
-          >
-            Download
-          </a>
-          <button type="button" class="pdf-modal-close" id="rulesModalClose" aria-label="Close">&times;</button>
-        </div>
-      </div>
-      <iframe
-        class="pdf-modal-frame"
-        id="rulesModalFrame"
-        title="OMIC Art Prize 2026 Rules &amp; Regulations"
-      ></iframe>
-    </div>
-  </div>
 
   <footer class="site-footer">
     <div class="site-footer__inner">
