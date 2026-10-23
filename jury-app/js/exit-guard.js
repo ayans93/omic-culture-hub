@@ -4,23 +4,22 @@
 // Neither page has any real client-side routing (switching tabs, opening
 // an artwork, etc. never touches browser history), so the only history
 // entry under this page is the login screen. Pressing Back used to take
-// jurors/admins straight there -- and since the stored session survives
-// in localStorage, login.js immediately bounces them right back here with
-// a full page reload, resetting whatever tab/scroll position/draft
-// comment they had and reading as an accidental "logout" even though no
-// one was actually signed out.
+// jurors/admins straight there, and since the stored session survives in
+// localStorage, login.js immediately bounced them right back here with a
+// full page reload -- which still reset whatever tab/scroll position/
+// draft comment they had, so it never actually felt like "nothing
+// happened" even though no one was truly logged out either.
 //
-// This intercepts that first Back press with a lightweight confirm
-// dialog instead of letting the navigation happen outright. It never
-// touches the stored session either way -- "Leave" just lets the normal
-// back navigation proceed (landing on the login screen, which hands them
-// straight back here if the session's still valid, same as before); the
-// explicit "Log out" button elsewhere on the page remains the only thing
-// that actually clears the session.
+// This intercepts that first Back press with a confirm dialog instead of
+// letting the navigation happen outright. "Leave" is a real, explicit
+// logout (clears the stored session via the logout callback passed in),
+// so the dialog's copy can say so plainly and mean it.
 //
-// Call installExitGuard() once, only once a valid session is confirmed
-// (i.e. after requireAuth() has returned a truthy auth object) -- no
-// point guarding a page that's already redirecting away.
+// Call installExitGuard(logoutFn) once, only once a valid session is
+// confirmed (i.e. after requireAuth() has returned a truthy auth object)
+// -- no point guarding a page that's already redirecting away. logoutFn
+// is the page's clearStoredAuth, called right before navigating to the
+// login screen on "Leave".
 
 let installed = false;
 
@@ -32,6 +31,7 @@ function buildOverlay() {
   overlay.innerHTML = `
     <div class="modal-card exit-guard-card">
       <h2 class="detail-pane__title exit-guard-card__title">Are you sure you want to exit?</h2>
+      <p class="exit-guard-card__help">Leaving now will log you out, you will need to login again later to resume evaluation.</p>
       <div class="exit-guard-card__actions">
         <button type="button" class="btn btn--secondary" id="exitGuardStayBtn">Stay</button>
         <button type="button" class="btn btn--primary" id="exitGuardLeaveBtn">Leave</button>
@@ -42,7 +42,7 @@ function buildOverlay() {
   return overlay;
 }
 
-export function installExitGuard() {
+export function installExitGuard(logoutFn) {
   if (installed) return;
   installed = true;
 
@@ -84,9 +84,7 @@ export function installExitGuard() {
 
   leaveBtn.addEventListener('click', () => {
     hideDialog();
-    // The session is never cleared here -- this reproduces exactly what
-    // the Back button always led to (the login screen), which sends them
-    // straight back here if the session's still valid.
+    if (typeof logoutFn === 'function') logoutFn();
     window.location.href = '/index.html';
   });
 }

@@ -2,7 +2,18 @@ import { juryApiCall, requireAuth, clearStoredAuth, escapeHtml, downloadAdminExp
 import { installExitGuard } from './exit-guard.js';
 
 const auth = requireAuth('admin');
-if (auth) installExitGuard();
+if (auth) installExitGuard(clearStoredAuth);
+
+// Shared label for a raw vote value wherever the admin dashboard shows an
+// individual juror's vote. 'skip' is kept here (but nowhere else in this
+// app) purely so a historical skip still reads clearly in the submission
+// detail modal, the one place that still shows raw vote history
+// unfiltered -- see jury_admin_submission_detail in
+// 06_shortlist_rename_and_rank.sql.
+const VOTE_LABELS = { love: 'Shortlisted', reject: 'Rejected', save_for_later: 'Saved for Later', skip: 'Skipped (legacy)' };
+function voteLabel(vote) {
+  return VOTE_LABELS[vote] || '—';
+}
 
 const adminName = document.getElementById('adminName');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -112,8 +123,8 @@ async function loadResults() {
     if (tieFlag) {
       tieWrap.innerHTML = `
         <div class="tie-banner">
-          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at ${tieFlag.loveCount} Love votes
-          spanning ranks ${Math.min(...tieFlag.ranks)}–${Math.max(...tieFlag.ranks)}. This needs a manual decision — it is not resolved automatically.
+          <strong>Tie at the Top 20 cutoff:</strong> ${tieFlag.submissionIds.length} submissions are tied at rank ${tieFlag.rank},
+          straddling the cutoff. This needs a manual decision — it is not resolved automatically.
         </div>
       `;
     }
@@ -126,7 +137,7 @@ async function loadResults() {
         <table class="data-table">
           <thead>
             <tr>
-              <th>Rank</th><th>ID</th><th>Title</th>${jurorCols}<th>Love</th><th>Skip</th>
+              <th>Rank</th><th>Reviewed</th><th>ID</th><th>Title</th>${jurorCols}<th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th>
             </tr>
           </thead>
           <tbody>
@@ -136,18 +147,22 @@ async function loadResults() {
                 const jurorCells = jurors
                   .map((j) => {
                     const v = r.byJuror[j.id];
-                    const label = v === 'love' ? 'Love' : v === 'skip' ? 'Skip' : '—';
-                    return `<td data-label="${escapeHtml(j.name)}">${label}</td>`;
+                    return `<td data-label="${escapeHtml(j.name)}">${voteLabel(v)}</td>`;
                   })
                   .join('');
+                const rankCell = r.rank
+                  ? `${r.rank}${r.final ? '' : ' <span class="rank-live-badge" title="Provisional -- not every juror has reviewed this submission yet">live</span>'}`
+                  : '—';
                 return `
                   <tr class="${inTop20 ? 'is-top20' : ''}">
-                    <td data-label="Rank">${r.rank || '—'}</td>
+                    <td data-label="Rank">${rankCell}</td>
+                    <td data-label="Reviewed">${r.reviewsCompleted} / ${r.reviewsRequired}</td>
                     <td data-label="ID">${escapeHtml(r.id)}</td>
                     <td data-label="Title">${escapeHtml(r.title || '—')}</td>
                     ${jurorCells}
-                    <td data-label="Love">${r.loveCount}</td>
-                    <td data-label="Skip">${r.skipCount}</td>
+                    <td data-label="Shortlisted">${r.loveCount}</td>
+                    <td data-label="Rejected">${r.rejectCount}</td>
+                    <td data-label="Saved for Later">${r.savedForLaterCount}</td>
                   </tr>
                 `;
               })
@@ -155,7 +170,7 @@ async function loadResults() {
           </tbody>
         </table>
       </div>
-      <p class="empty-state" style="padding:8px 0;text-align:left">Highlighted rows are the current Top 20. A submission only appears ranked once every juror has voted on it.</p>
+      <p class="empty-state" style="padding:8px 0;text-align:left">Highlighted rows are the current Top 20. Rank updates live as votes come in -- a "live" tag means the rank is provisional because not every juror has reviewed that submission yet; it becomes final once they have. Ranking is a weighted score (Shortlist +1, Save for Later +0.1, Reject −0.1).</p>
     `;
   } catch (err) {
     wrap.innerHTML = `<p class="empty-state">${escapeHtml(err.message || 'Could not load results.')}</p>`;
@@ -178,12 +193,15 @@ async function loadSubmissions() {
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>ID</th><th>Artist</th><th>Title</th><th>Medium</th><th>Year</th><th>Eligible</th><th>Reviews</th><th>Love</th><th>Skip</th><th>Comments</th><th>Rank</th></tr>
+            <tr><th>ID</th><th>Artist</th><th>Title</th><th>Medium</th><th>Year</th><th>Eligible</th><th>Reviews</th><th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th><th>Comments</th><th>Rank</th></tr>
           </thead>
           <tbody>
             ${result.submissions
-              .map(
-                (s) => `
+              .map((s) => {
+                const rankCell = s.rank
+                  ? `${s.rank}${s.final ? '' : ' <span class="rank-live-badge" title="Provisional -- not every juror has reviewed this submission yet">live</span>'}`
+                  : '—';
+                return `
                   <tr class="${s.inTop20 ? 'is-top20' : ''} submission-row" data-id="${escapeHtml(s.id)}">
                     <td data-label="ID">${escapeHtml(s.id)}</td>
                     <td data-label="Artist">${escapeHtml(s.artistName || '—')}</td>
@@ -191,19 +209,20 @@ async function loadSubmissions() {
                     <td data-label="Medium">${escapeHtml(s.medium || '—')}</td>
                     <td data-label="Year">${escapeHtml(s.year || '—')}</td>
                     <td data-label="Eligible">${s.eligible ? 'Yes' : 'No'}</td>
-                    <td data-label="Reviews">${s.reviewsCompleted}</td>
-                    <td data-label="Love">${s.loveCount}</td>
-                    <td data-label="Skip">${s.skipCount}</td>
+                    <td data-label="Reviews">${s.reviewsCompleted} / ${s.reviewsRequired}</td>
+                    <td data-label="Shortlisted">${s.loveCount}</td>
+                    <td data-label="Rejected">${s.rejectCount}</td>
+                    <td data-label="Saved for Later">${s.savedForLaterCount}</td>
                     <td data-label="Comments">${s.commentCount > 0 ? `<span class="pill pill--open">${s.commentCount}</span>` : '—'}</td>
-                    <td data-label="Rank">${s.rank || '—'}</td>
+                    <td data-label="Rank">${rankCell}</td>
                   </tr>
-                `
-              )
+                `;
+              })
               .join('')}
           </tbody>
         </table>
       </div>
-      <p class="empty-state" style="padding:8px 0;text-align:left">Click any row to see the full artwork, its votes, and any juror comments. To add or change submissions, edit the Submissions tab in the Jury Sheet directly.</p>
+      <p class="empty-state" style="padding:8px 0;text-align:left">Click any row to see the full artwork, its votes, and any juror comments. Rank updates live as votes come in -- a "live" tag means not every juror has reviewed that submission yet. To add or change submissions, edit the Submissions tab in the Jury Sheet directly.</p>
     `;
     wrap.querySelectorAll('.submission-row').forEach((row) => {
       row.addEventListener('click', () => openSubmissionModal(row.dataset.id));
@@ -262,7 +281,7 @@ async function openSubmissionModal(id) {
                 (v) => `
                   <tr>
                     <td data-label="Juror">${escapeHtml(v.jurorName)}</td>
-                    <td data-label="Vote">${v.vote === 'love' ? 'Love' : v.vote === 'skip' ? 'Skip' : '—'}</td>
+                    <td data-label="Vote">${voteLabel(v.vote)}</td>
                     <td data-label="Comment">${v.comment ? escapeHtml(v.comment) : '—'}</td>
                   </tr>
                 `
@@ -293,7 +312,7 @@ async function loadJurors() {
       <div class="data-table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Name</th><th>Username</th><th>Progress</th><th>Love</th><th>Skip</th><th>Status</th><th></th></tr>
+            <tr><th>Name</th><th>Username</th><th>Progress</th><th>Shortlisted</th><th>Rejected</th><th>Saved for Later</th><th>Status</th><th></th></tr>
           </thead>
           <tbody>
             ${result.jurors
@@ -303,8 +322,9 @@ async function loadJurors() {
                     <td data-label="Name">${escapeHtml(j.name)}</td>
                     <td data-label="Username">${escapeHtml(j.username)}</td>
                     <td data-label="Progress">${j.reviewsCompleted} / ${j.reviewsRequired}</td>
-                    <td data-label="Love">${j.loveCount}</td>
-                    <td data-label="Skip">${j.skipCount}</td>
+                    <td data-label="Shortlisted">${j.loveCount}</td>
+                    <td data-label="Rejected">${j.rejectCount}</td>
+                    <td data-label="Saved for Later">${j.savedForLaterCount}</td>
                     <td data-label="Status">${j.finalized ? '<span class="pill pill--locked">Finalized</span>' : '<span class="pill pill--open">In progress</span>'}</td>
                     <td data-label="">${j.finalized ? '<button type="button" class="btn btn--secondary unlock-btn">Unlock</button>' : ''}</td>
                   </tr>

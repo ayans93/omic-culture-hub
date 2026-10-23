@@ -2,7 +2,7 @@ import { juryApiCall, requireAuth, clearStoredAuth, escapeHtml } from './api.js'
 import { installExitGuard } from './exit-guard.js';
 
 const auth = requireAuth('juror');
-if (auth) installExitGuard();
+if (auth) installExitGuard(clearStoredAuth);
 
 const jurorNameEl = document.getElementById('jurorName');
 const logoutBtn = document.getElementById('logoutBtn');
