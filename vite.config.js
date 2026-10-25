@@ -16,6 +16,7 @@ export default defineConfig({
         artCompetition: resolve(__dirname, 'art-competition.html'),
         videoArtTalk: resolve(__dirname, 'video-art-talk.html'),
         newton: resolve(__dirname, 'newton.html'),
+        andhaYug: resolve(__dirname, 'andha-yug.html'),
         linocutWorkshop: resolve(__dirname, 'linocut-workshop.html'),
         unspokenWorkshop: resolve(__dirname, 'unspoken-workshop.html'),
         cafe: resolve(__dirname, 'cafe.html'),

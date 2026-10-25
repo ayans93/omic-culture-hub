@@ -43,6 +43,15 @@ if (newtonPosterCarousel) {
   initPosterCarousel(newtonPosterCarousel);
 }
 
+const andhaYugForm = document.getElementById('andhaYugForm');
+
+// Only the Andha Yug show page has this dedicated registration form --
+// Newton's pattern (UAE/India phone country select, guest-count picker,
+// seat/waitlist capacity logic), plus an optional 2nd-guest contact field.
+if (andhaYugForm) {
+  initAndhaYugForm();
+}
+
 const artistModal = document.getElementById('artistModal');
 
 // Pages without a Featured Artists modal (e.g. Cafe, Shows) can
@@ -1014,6 +1023,291 @@ function initNewtonForm() {
     goToThankYou(eventName, 'registration');
   });
 } // end initNewtonForm
+
+// The Andha Yug show page's registration form: same pattern as Newton's
+// (name, number of guests -- 1 or 2, a country-select phone field, email, a
+// mandatory consent checkbox that gates the Register button, and an optional
+// marketing opt-in checkbox that does not), plus one addition: when 2 guests
+// are selected, an optional "phone number or email of 2nd guest" field
+// appears so the team can reach that guest directly if needed -- it's never
+// required, so nothing here blocks submission if it's left blank. Seats are
+// capped (50 confirmed, then a 30-person waitlist), so the page also checks
+// current availability on load and swaps the form out for a "registrations
+// are full" notice if capacity's already been reached (or trims the
+// guest-count options, and hides the 2nd-guest field along with them, if
+// only one seat is left).
+function initAndhaYugForm() {
+  const formWrap = document.getElementById('andhaYugFormWrap');
+  const closedNotice = document.getElementById('andhaYugClosedNotice');
+  const submitButton = document.getElementById('andhaYugSubmit');
+  const consentCheckbox = document.getElementById('andhaYugConsent');
+  const marketingOptInCheckbox = document.getElementById('andhaYugMarketingOptIn');
+  const countrySelect = document.getElementById('andhaYugPhoneCountry');
+  const guestCountInputs = Array.from(document.querySelectorAll('input[name="andhaYugGuestCount"]'));
+  const guestCountHint = document.getElementById('andhaYugGuestCountHint');
+  const secondGuestWrap = document.getElementById('andhaYugSecondGuestWrap');
+  const secondGuestInput = document.getElementById('andhaYugSecondGuestContact');
+
+  const eventName = document.body.dataset.eventName || document.title;
+  const eventDate = document.body.dataset.eventDate || '';
+  const eventTime = document.body.dataset.eventTime || '';
+  const eventVenue = document.body.dataset.eventVenue || '';
+  const eventBlurb = document.body.dataset.eventBlurb || '';
+
+  // Local-digit length (after the country code) for each of the two
+  // countries this form accepts -- no other country code is offered.
+  const PHONE_LENGTHS = {
+    971: { min: 8, max: 9, label: 'Enter a valid UAE number, e.g. 5X XXX XXXX.' },
+    91: { min: 10, max: 10, label: 'Enter a valid 10-digit Indian mobile number.' },
+  };
+
+  const fields = {
+    name: {
+      input: document.getElementById('andhaYugName'),
+      error: document.getElementById('andhaYugNameError'),
+      validate(value) {
+        const trimmed = value.trim();
+        if (!trimmed) return 'Please enter your name.';
+        if (trimmed.length < 2) return 'Name looks too short.';
+        if (!/^[A-Za-z][A-Za-z .'-]*$/.test(trimmed)) {
+          return 'Name can only contain letters, spaces, apostrophes and hyphens.';
+        }
+        return '';
+      },
+    },
+    phone: {
+      input: document.getElementById('andhaYugPhone'),
+      error: document.getElementById('andhaYugPhoneError'),
+      validate(value) {
+        // The country code is a separate <select>, not part of this
+        // field's value -- so this only validates the local digits the
+        // visitor actually typed, against whichever country is selected.
+        const normalized = value.trim().replace(/[\s()-]/g, '');
+        if (!normalized) return 'Please enter your phone number.';
+        const rule = PHONE_LENGTHS[countrySelect.value] || PHONE_LENGTHS[971];
+        if (!/^[0-9]+$/.test(normalized) || normalized.length < rule.min || normalized.length > rule.max) {
+          return rule.label;
+        }
+        return '';
+      },
+    },
+    email: {
+      input: document.getElementById('andhaYugEmail'),
+      error: document.getElementById('andhaYugEmailError'),
+      validate(value) {
+        const trimmed = value.trim();
+        if (!trimmed) return 'Please enter your email.';
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(trimmed)) return 'Enter a valid email address.';
+        return '';
+      },
+    },
+  };
+
+  function setFieldError(field, message) {
+    field.error.textContent = message;
+    if (message) {
+      field.error.classList.add('is-visible');
+      field.input.classList.add('is-invalid');
+    } else {
+      field.error.classList.remove('is-visible');
+      field.input.classList.remove('is-invalid');
+    }
+  }
+
+  function validateField(key) {
+    const field = fields[key];
+    const message = field.validate(field.input.value);
+    setFieldError(field, message);
+    return !message;
+  }
+
+  // Validate on blur for immediate feedback, and clear the error as the
+  // user retypes -- same pattern as the other forms on this site.
+  Object.keys(fields).forEach((key) => {
+    const field = fields[key];
+    field.input.addEventListener('blur', () => validateField(key));
+    field.input.addEventListener('input', () => {
+      if (field.error.classList.contains('is-visible')) {
+        validateField(key);
+      }
+    });
+  });
+
+  // Switching country re-checks the phone field against the new country's
+  // length, if an error is already showing.
+  countrySelect.addEventListener('change', () => {
+    if (fields.phone.error.classList.contains('is-visible')) {
+      validateField('phone');
+    }
+  });
+
+  function getGuestCount() {
+    const checked = guestCountInputs.find((input) => input.checked);
+    return checked ? parseInt(checked.value, 10) : 1;
+  }
+
+  // The optional 2nd-guest contact field only makes sense -- and is only
+  // shown -- when 2 guests are selected. Switching back to 1 hides it and
+  // clears whatever was typed, so a stray value can't be submitted for a
+  // single-guest booking.
+  function updateSecondGuestVisibility() {
+    const showSecondGuest = getGuestCount() === 2;
+    secondGuestWrap.hidden = !showSecondGuest;
+    if (!showSecondGuest) secondGuestInput.value = '';
+  }
+  guestCountInputs.forEach((input) => {
+    input.addEventListener('change', updateSecondGuestVisibility);
+  });
+  updateSecondGuestVisibility();
+
+  // The Register button stays disabled until the consent checkbox is
+  // checked, regardless of what else is filled in -- same pattern as the
+  // Art Contest's exhibition-consent checkbox.
+  function updateSubmitAvailability() {
+    submitButton.disabled = !consentCheckbox.checked;
+  }
+  consentCheckbox.addEventListener('change', updateSubmitAvailability);
+  updateSubmitAvailability();
+
+  function setSubmitting(isSubmitting) {
+    submitButton.disabled = isSubmitting || !consentCheckbox.checked;
+    submitButton.textContent = isSubmitting ? 'Registering…' : 'Register';
+  }
+
+  async function notifyByEmail(data) {
+    if (!REGISTRATION_NOTIFY_ENDPOINT || REGISTRATION_NOTIFY_ENDPOINT.includes('PASTE_YOUR')) {
+      console.warn(
+        'Registration notification endpoint is not configured yet — see ' +
+          'EMAIL_NOTIFICATIONS_SETUP.md. Skipping; no email was sent for this registration:',
+        data
+      );
+      return;
+    }
+
+    const body = new URLSearchParams({
+      formType: 'andhaYugRegistration',
+      origin: SITE_ORIGIN,
+      timestamp: new Date().toISOString(),
+      event: eventName,
+      eventDate,
+      eventTime,
+      eventVenue,
+      eventBlurb,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      guestCount: String(data.guestCount),
+      secondGuestContact: data.secondGuestContact,
+      marketingOptIn: data.marketingOptIn ? 'yes' : 'no',
+    });
+
+    // Same fire-and-forget pattern as the other forms on this site: Apps
+    // Script Web Apps can take several seconds, and the response is opaque
+    // either way (no-cors / sendBeacon), so there's nothing to gain by
+    // waiting for it here — see initRegisterForm's notifyByEmail for the
+    // full reasoning.
+    if (navigator.sendBeacon) {
+      try {
+        if (navigator.sendBeacon(REGISTRATION_NOTIFY_ENDPOINT, body)) return;
+      } catch (err) {
+        // Fall through to fetch below.
+      }
+    }
+
+    try {
+      await fetch(REGISTRATION_NOTIFY_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        body,
+      });
+    } catch (err) {
+      console.error('Could not reach the registration notification endpoint:', err);
+    }
+  }
+
+  // Best-effort "seats left" check on page load, using a JSONP-style
+  // <script> tag: Apps Script Web Apps don't send CORS headers, so an
+  // ordinary cross-origin fetch can't read the response, but loading a
+  // <script src="..."> tag isn't subject to CORS at all -- the endpoint
+  // wraps its JSON in a call to this one-off callback instead. If this
+  // can't be reached for any reason (offline, ad blocker, endpoint not
+  // configured yet), we fail open and leave the form up; the Apps Script
+  // side still enforces the real 50+30 limit (and the 2-guests-per-booking
+  // cap) when it processes a submission, so nothing can actually overbook
+  // from this check failing.
+  function checkAndhaYugCapacity() {
+    if (!REGISTRATION_NOTIFY_ENDPOINT || REGISTRATION_NOTIFY_ENDPOINT.includes('PASTE_YOUR')) return;
+
+    const callbackName = '__andhaYugCapacity' + Date.now();
+    const script = document.createElement('script');
+
+    function cleanup() {
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (data) => {
+      if (data && data.closed) {
+        formWrap.hidden = true;
+        closedNotice.hidden = false;
+      } else if (data && data.remaining === 1) {
+        // Only one seat left in total -- booking for 2 would always fail,
+        // so don't offer that option in the first place.
+        const twoGuestsInput = guestCountInputs.find((input) => input.value === '2');
+        if (twoGuestsInput) {
+          twoGuestsInput.disabled = true;
+          twoGuestsInput.closest('.radio-bubble').classList.add('is-disabled');
+          if (twoGuestsInput.checked) {
+            const oneGuestInput = guestCountInputs.find((input) => input.value === '1');
+            if (oneGuestInput) oneGuestInput.checked = true;
+          }
+        }
+        if (guestCountHint) guestCountHint.textContent = 'Only 1 seat left — bookings for 2 are unavailable right now.';
+        updateSecondGuestVisibility();
+      }
+      cleanup();
+    };
+
+    script.onerror = cleanup;
+    script.src = REGISTRATION_NOTIFY_ENDPOINT + '?formType=andhaYugCapacity&callback=' + callbackName;
+    document.body.appendChild(script);
+  }
+
+  checkAndhaYugCapacity();
+
+  document.getElementById('andhaYugForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!consentCheckbox.checked) return;
+
+    const results = Object.keys(fields).map((key) => validateField(key));
+    const allValid = results.every(Boolean);
+
+    if (!allValid) {
+      const firstInvalidKey = Object.keys(fields).find(
+        (key) => fields[key].input.classList.contains('is-invalid')
+      );
+      if (firstInvalidKey) {
+        fields[firstInvalidKey].input.focus();
+      }
+      return;
+    }
+
+    const data = {
+      name: fields.name.input.value.trim(),
+      phone: '+' + countrySelect.value + fields.phone.input.value.trim().replace(/[\s()-]/g, ''),
+      email: fields.email.input.value.trim(),
+      guestCount: getGuestCount(),
+      secondGuestContact: getGuestCount() === 2 ? secondGuestInput.value.trim() : '',
+      marketingOptIn: marketingOptInCheckbox.checked,
+    };
+
+    setSubmitting(true);
+    await notifyByEmail(data);
+    goToThankYou(eventName, 'registration');
+  });
+} // end initAndhaYugForm
 
 // Cross-fades between the poster image and a YouTube trailer thumbnail:
 // poster visible for 2s, then the trailer frame for 5s, looping forever.

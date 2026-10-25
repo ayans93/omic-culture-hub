@@ -103,6 +103,40 @@ var NEWTON_THINGS_TO_NOTE = [
 // tampered request can't request more.
 var NEWTON_MAX_GUESTS_PER_BOOKING = 2;
 
+// Team notification address for Andha Yug registrations (used in
+// handleAndhaYugRegistration below). Currently the same general inbox as
+// most other events -- change this if the team wants Andha Yug routed to a
+// dedicated address the way Newton is (see NEWTON_NOTIFY_EMAIL above).
+var ANDHA_YUG_NOTIFY_EMAIL = 'gallery@omic.spot';
+
+// The "Andha Yug Show Registrations" tracking spreadsheet. Same deal as the
+// other per-event sheets above: the account this script runs as needs edit
+// access to it. Columns: Name, Phone number, Email, Registration timestamp,
+// Guests, 2nd Guest Contact, Status, Booking Code.
+// https://docs.google.com/spreadsheets/d/1ccyjf69ajncLmLROJXZAlsGzF8OOqKd15lhLIKzfn-Q
+var ANDHA_YUG_SHEET_ID = '1ccyjf69ajncLmLROJXZAlsGzF8OOqKd15lhLIKzfn-Q';
+var ANDHA_YUG_SHEET_TAB_NAME = 'Sheet1';
+
+// Same capacity shape as Newton: 50 confirmed seats, then a 30-person
+// waitlist (80 total) before registrations close.
+var ANDHA_YUG_CONFIRMED_SEATS = 50;
+var ANDHA_YUG_WAITLIST_SEATS = 30;
+
+// Shown on the Andha Yug event page under "Things to Note", and copied into
+// every registrant's confirmation email (see buildAndhaYugConfirmationHtml_
+// and sendAndhaYugConfirmation_ below) so the two stay in sync.
+var ANDHA_YUG_THINGS_TO_NOTE = [
+  'Please arrive 20 minutes before the show starts to allow time for seating and parking.',
+  'The reading is performed in Hindi; no subtitles will be provided.',
+  'Followed by an interaction with the audience.',
+  "While you're here, grab some drinks and snacks at our café.",
+  'Paid parking is available at the venue.',
+  'Please keep your registration confirmation ready before you enter the theatre.',
+];
+
+// Same per-booking cap as Newton -- see NEWTON_MAX_GUESTS_PER_BOOKING above.
+var ANDHA_YUG_MAX_GUESTS_PER_BOOKING = 2;
+
 function doPost(e) {
   var params = (e && e.parameter) || {};
   var formType = params.formType || 'registration';
@@ -113,6 +147,10 @@ function doPost(e) {
 
   if (formType === 'newtonRegistration') {
     return handleNewtonRegistration(params);
+  }
+
+  if (formType === 'andhaYugRegistration') {
+    return handleAndhaYugRegistration(params);
   }
 
   return handleRegistration(params);
@@ -891,6 +929,441 @@ function handleNewtonCapacityCheck_(params) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// Andha Yug's registration form: name, phone, email, a guest count of 1 or
+// 2, and an optional phone/email contact for the 2nd guest. Seats are
+// limited (50 confirmed, then a 30-person waitlist), so this atomically
+// hands out the next 1 or 2 confirmation/waitlist numbers (the whole party
+// at once -- see allocateAndhaYugSeats_), generates one booking code + QR
+// code per seat, emails the registrant a single confirmation with every
+// seat's code/QR (or a "we're full" note if the whole party doesn't fit),
+// and logs one row per seat to the tracking spreadsheet. Structurally
+// identical to handleNewtonRegistration above -- see that function's
+// comments for the full reasoning -- with the 2nd-guest contact field as
+// the one addition.
+function handleAndhaYugRegistration(params) {
+  var timestamp = params.timestamp || new Date().toISOString();
+  var name = params.name || '';
+  var phone = params.phone || '';
+  var email = params.email || '';
+  var secondGuestContact = params.secondGuestContact || '';
+
+  var guestCount = parseInt(params.guestCount, 10);
+  if (!guestCount || guestCount < 1) guestCount = 1;
+  if (guestCount > ANDHA_YUG_MAX_GUESTS_PER_BOOKING) guestCount = ANDHA_YUG_MAX_GUESTS_PER_BOOKING;
+
+  // The 2nd-guest contact field is optional and only meaningful for a
+  // 2-guest booking -- ignore it entirely for a solo registration even if
+  // one somehow arrived (e.g. a stale/tampered request).
+  if (guestCount < 2) secondGuestContact = '';
+
+  // Optional "I'd like to hear about upcoming shows and events" checkbox --
+  // unlike the mandatory consent checkbox, this doesn't gate submission at
+  // all, it's just recorded for the team's awareness (not written to the
+  // tracking sheet, which the user doesn't want a new column added to --
+  // same as Newton).
+  var marketingOptIn = params.marketingOptIn === 'yes';
+
+  // LockService serializes concurrent submissions so two parties landing at
+  // the same instant can't both be handed the same confirmation number --
+  // each caller waits its turn before reading/incrementing the seat count.
+  var lock = LockService.getScriptLock();
+  var allocations = [];
+  try {
+    lock.waitLock(30000);
+    allocations = allocateAndhaYugSeats_(guestCount);
+    try {
+      if (allocations.length) {
+        allocations.forEach(function (allocation) {
+          appendAndhaYugRegistrationToSheet_({
+            name: name,
+            phone: phone,
+            email: email,
+            timestamp: timestamp,
+            guests: guestCount,
+            secondGuestContact: secondGuestContact,
+            status: allocation.status,
+            bookingCode: allocation.bookingCode,
+          });
+        });
+      } else {
+        appendAndhaYugRegistrationToSheet_({
+          name: name,
+          phone: phone,
+          email: email,
+          timestamp: timestamp,
+          guests: guestCount,
+          secondGuestContact: secondGuestContact,
+          status: 'Closed - Not Accepted',
+          bookingCode: '',
+        });
+      }
+    } catch (err) {
+      // Best-effort, same as the Newton sheet logging -- see comment there.
+      // Logged so it's visible in Executions if rows go missing.
+      Logger.log('appendAndhaYugRegistrationToSheet_ failed: ' + err);
+    }
+  } catch (err) {
+    Logger.log('Andha Yug seat allocation failed: ' + err);
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (err) {
+      // Ignore -- nothing more we can do if releasing itself fails.
+    }
+  }
+
+  // 1. Notify the team, same pattern as the other form handlers -- unless
+  // this came from the staging site, in which case redirect it to
+  // TEST_RECIPIENT_EMAIL (see isStagingRequest_) instead of the real Andha
+  // Yug team address.
+  var staging = isStagingRequest_(params);
+  var teamEmail = staging ? TEST_RECIPIENT_EMAIL : ANDHA_YUG_NOTIFY_EMAIL;
+  var statusSummary = allocations.length
+    ? allocations.map(function (a) { return a.status; }).join(', ')
+    : 'CLOSED (already full)';
+  var subject = (staging ? '[STAGING] ' : '') + 'New Andha Yug registration (' + guestCount + (guestCount === 1 ? ' guest' : ' guests') + '): ' + statusSummary;
+  var body = [
+    'A new registration was just submitted on the Andha Yug page.',
+    '',
+    'Name: ' + name,
+    'Phone: ' + phone,
+    'Email: ' + email,
+    'Guests: ' + guestCount,
+    '2nd guest contact: ' + (secondGuestContact || '(not provided)'),
+    'Wants updates on future shows: ' + (marketingOptIn ? 'Yes' : 'No'),
+    'Status: ' + (allocations.length
+      ? statusSummary
+      : 'Registrations were already full when this arrived -- logged for reference only, no confirmation email sent.'),
+    'Booking code(s): ' + (allocations.length ? allocations.map(function (a) { return a.bookingCode; }).join(', ') : '(none)'),
+    'Submitted: ' + timestamp,
+  ].join('\n');
+
+  MailApp.sendEmail(teamEmail, subject, body);
+
+  // 2. Confirm (or apologize) to the person who just registered. Best-effort,
+  // same reasoning as sendRegistrantConfirmation_ above.
+  if (email) {
+    try {
+      if (allocations.length) {
+        sendAndhaYugConfirmation_({
+          email: email,
+          name: name,
+          allocations: allocations,
+        });
+      } else {
+        sendAndhaYugClosedNotice_({ email: email, name: name });
+      }
+    } catch (err) {
+      Logger.log('Andha Yug confirmation email failed: ' + err);
+    }
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ result: 'success' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Reads the current row count from the Andha Yug sheet and hands out the
+// next `guestCount` seats as one all-or-nothing block -- identical logic to
+// allocateNewtonSeats_ above (see that function's comments for the full
+// reasoning). Must be called while holding the script lock.
+function allocateAndhaYugSeats_(guestCount) {
+  var sheet = SpreadsheetApp.openById(ANDHA_YUG_SHEET_ID).getSheetByName(ANDHA_YUG_SHEET_TAB_NAME);
+  var currentCount = sheet ? Math.max(0, sheet.getLastRow() - 1) : 0;
+  var totalCapacity = ANDHA_YUG_CONFIRMED_SEATS + ANDHA_YUG_WAITLIST_SEATS;
+
+  if (currentCount + guestCount > totalCapacity) {
+    return [];
+  }
+
+  var allocations = [];
+  for (var i = 0; i < guestCount; i++) {
+    var seatNumber = currentCount + 1 + i;
+    var status = seatNumber <= ANDHA_YUG_CONFIRMED_SEATS
+      ? 'CNF ' + seatNumber
+      : 'WL ' + (seatNumber - ANDHA_YUG_CONFIRMED_SEATS);
+    allocations.push({ status: status, bookingCode: generateAndhaYugBookingCode_(), seatNumber: seatNumber });
+  }
+  return allocations;
+}
+
+// 8-character alphanumeric booking code formatted like "68NF-O8R3".
+function generateAndhaYugBookingCode_() {
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  function randomPart(length) {
+    var out = '';
+    for (var i = 0; i < length; i++) {
+      out += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return out;
+  }
+  return randomPart(4) + '-' + randomPart(4);
+}
+
+// Fetches a QR code PNG for a booking code from a free, key-less QR API --
+// identical to fetchNewtonQrBlob_ above. Returns null (rather than
+// throwing) on any failure, since a missing QR image shouldn't block the
+// email itself from sending.
+function fetchAndhaYugQrBlob_(bookingCode, index) {
+  try {
+    var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(bookingCode);
+    var response = UrlFetchApp.fetch(qrUrl, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) return null;
+    return response.getBlob().setName('andha-yug-booking-qr-' + (index || 0) + '.png');
+  } catch (err) {
+    Logger.log('fetchAndhaYugQrBlob_ failed: ' + err);
+    return null;
+  }
+}
+
+// Sends one confirmation email covering every seat in the booking (1 or 2).
+// `info.allocations` is the array allocateAndhaYugSeats_ returned: each
+// entry gets its own QR code, inlined as cid "andhaYugQr0", "andhaYugQr1",
+// etc.
+function sendAndhaYugConfirmation_(info) {
+  var firstName = (info.name || '').trim().split(/\s+/)[0] || 'there';
+  var allocations = info.allocations;
+  var seatCount = allocations.length;
+  var confirmedCount = allocations.filter(function (a) { return a.status.indexOf('CNF') === 0; }).length;
+  var waitlistCount = seatCount - confirmedCount;
+  var allWaitlist = confirmedCount === 0;
+  var allConfirmed = waitlistCount === 0;
+
+  var inlineImages = {};
+  var qrBlobs = allocations.map(function (allocation, index) {
+    var blob = fetchAndhaYugQrBlob_(allocation.bookingCode, index);
+    if (blob) inlineImages['andhaYugQr' + index] = blob;
+    return blob;
+  });
+
+  var headline = allConfirmed
+    ? "You're confirmed"
+    : allWaitlist
+      ? "You're on the waitlist"
+      : "You're partly confirmed";
+
+  var textLines = [
+    'Hi ' + firstName + ',',
+    '',
+    headline + ' for Andha Yug' + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + '.',
+    '',
+  ];
+  allocations.forEach(function (allocation, index) {
+    textLines.push('Seat ' + (index + 1) + ' -- Status: ' + allocation.status + ', Booking code: ' + allocation.bookingCode);
+  });
+  textLines.push(
+    '',
+    allConfirmed
+      ? 'Please keep these codes (and the attached QR codes) handy -- show them at check-in.'
+      : allWaitlist
+        ? "We'll reach out if confirmed seats open up before the show."
+        : "The confirmed seat(s) above are set -- we'll reach out if the waitlisted seat(s) open up before the show.",
+    '',
+    'Andha Yug (A Dramatic Reading in Hindi) plays Sunday, November 1, 2026 at 7:30 PM at OMIC Theatre, OMIC Cultural Hub, followed by an interaction with the audience.',
+    '',
+    'Things to note:'
+  );
+  ANDHA_YUG_THINGS_TO_NOTE.forEach(function (note) {
+    textLines.push('- ' + note);
+  });
+  textLines.push(
+    '',
+    '— OMIC Cultural Hub'
+  );
+
+  var mailOptions = {
+    to: info.email,
+    subject: allConfirmed ? "You're confirmed: Andha Yug" : allWaitlist ? "You're on the waitlist: Andha Yug" : 'Your Andha Yug booking',
+    body: textLines.join('\n'),
+    htmlBody: buildAndhaYugConfirmationHtml_(info, firstName, allocations, qrBlobs),
+    name: SENDER_NAME,
+  };
+  if (Object.keys(inlineImages).length) {
+    mailOptions.inlineImages = inlineImages;
+  }
+
+  MailApp.sendEmail(mailOptions);
+}
+
+function buildAndhaYugConfirmationHtml_(info, firstName, allocations, qrBlobs) {
+  var escape = function (value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  var seatCount = allocations.length;
+  var confirmedCount = allocations.filter(function (a) { return a.status.indexOf('CNF') === 0; }).length;
+  var allWaitlist = confirmedCount === 0;
+  var allConfirmed = confirmedCount === seatCount;
+
+  var introText = allConfirmed
+    ? "You're booked in for <strong>Andha Yug</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + ' — a dramatic reading in Hindi, followed by an interaction with the audience.'
+    : allWaitlist
+      ? "You've been added to the waitlist for <strong>Andha Yug</strong>" + (seatCount > 1 ? ' (' + seatCount + ' guests)' : '') + ". We'll reach out if confirmed seats open up before the show."
+      : "Part of your booking for <strong>Andha Yug</strong> is confirmed, and part is on the waitlist — see the breakdown below.";
+
+  var checkInNote = allConfirmed
+    ? '<p style="margin:0 0 16px;color:#8a8378;font-size:13px;line-height:1.6;">Please keep these codes (and the QR codes below) handy — show them at check-in.</p>'
+    : '';
+
+  var seatRows = allocations.map(function (allocation, index) {
+    return (
+      '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Seat ' + (index + 1) + '</td>' +
+        '<td style="padding:4px 0;color:#17140f;font-size:14px;font-weight:700;">' + escape(allocation.status) +
+        ' <span style="color:#8a8378;font-weight:400;letter-spacing:0.04em;">(' + escape(allocation.bookingCode) + ')</span></td></tr>'
+    );
+  }).join('');
+
+  var qrBlock = qrBlobs.map(function (blob, index) {
+    if (!blob) return '';
+    return '<img src="cid:andhaYugQr' + index + '" width="160" height="160" alt="Booking QR code ' + (index + 1) + '" style="display:inline-block;margin:8px;border-radius:8px;" />';
+  }).join('');
+
+  var thingsToNoteItems = ANDHA_YUG_THINGS_TO_NOTE.map(function (note) {
+    return '<li style="margin:0 0 8px;">' + escape(note) + '</li>';
+  }).join('');
+
+  var thingsToNoteBlock =
+    '<h2 style="margin:24px 0 10px;font-size:15px;color:#17140f;">Things to Note</h2>' +
+    '<ul style="margin:0;padding-left:18px;color:#37332b;font-size:13px;line-height:1.6;">' + thingsToNoteItems + '</ul>';
+
+  return (
+    '<div style="background:#f4ede1;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;">' +
+      '<div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e6dcc9;border-radius:16px;padding:32px;">' +
+        '<p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#4a6fe8;">OMIC Cultural Hub</p>' +
+        '<h1 style="margin:0 0 20px;font-size:22px;line-height:1.3;color:#17140f;">' +
+          (allConfirmed ? "You're confirmed, " : allWaitlist ? "You're on the waitlist, " : 'Hi ') + escape(firstName) + '!' +
+        '</h1>' +
+        '<p style="margin:0 0 16px;color:#17140f;font-size:15px;line-height:1.6;">' + introText + '</p>' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border-collapse:collapse;">' +
+          seatRows +
+          '<tr><td style="padding:8px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Date</td>' +
+            '<td style="padding:8px 0 4px;color:#17140f;font-size:14px;">Sunday, November 1, 2026</td></tr>' +
+          '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Time</td>' +
+            '<td style="padding:4px 0;color:#17140f;font-size:14px;">7:30 PM</td></tr>' +
+          '<tr><td style="padding:4px 12px 4px 0;color:#8a8378;font-size:13px;white-space:nowrap;">Venue</td>' +
+            '<td style="padding:4px 0;color:#17140f;font-size:14px;">OMIC Theatre, OMIC Cultural Hub</td></tr>' +
+        '</table>' +
+        checkInNote +
+        '<div style="text-align:center;">' + qrBlock + '</div>' +
+        thingsToNoteBlock +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function sendAndhaYugClosedNotice_(info) {
+  var firstName = (info.name || '').trim().split(/\s+/)[0] || 'there';
+  var textBody = [
+    'Hi ' + firstName + ',',
+    '',
+    "Thanks for your interest in Andha Yug -- unfortunately registrations (including the waitlist) are already full.",
+    '',
+    "We've noted your interest and will keep you in mind if anything opens up. Keep an eye on our Shows page for future performances.",
+    '',
+    '— OMIC Cultural Hub',
+  ].join('\n');
+
+  MailApp.sendEmail({
+    to: info.email,
+    subject: 'Andha Yug registrations are full',
+    body: textBody,
+    name: SENDER_NAME,
+  });
+}
+
+// Appends one row to the Andha Yug tracking spreadsheet, matching the
+// sheet's column order: Name, Phone number, Email, Registration timestamp,
+// Guests, 2nd Guest Contact, Status, Booking Code. A 2-guest booking calls
+// this once per seat (see handleAndhaYugRegistration), so two rows share the
+// same Name/Phone/Email/Timestamp/Guests/2nd Guest Contact but each carry
+// their own seat's Status and Booking Code.
+function appendAndhaYugRegistrationToSheet_(info) {
+  var sheet = SpreadsheetApp.openById(ANDHA_YUG_SHEET_ID).getSheetByName(ANDHA_YUG_SHEET_TAB_NAME);
+  if (!sheet) return;
+
+  sheet.appendRow([
+    info.name,
+    info.phone,
+    info.email,
+    info.timestamp,
+    info.guests || 1,
+    info.secondGuestContact || '',
+    info.status,
+    info.bookingCode || '',
+  ]);
+}
+
+// Answers the Andha Yug page's on-load "how many seats are left" check --
+// identical logic to handleNewtonCapacityCheck_ above (see that function's
+// comments for the full reasoning).
+function handleAndhaYugCapacityCheck_(params) {
+  var sheet = SpreadsheetApp.openById(ANDHA_YUG_SHEET_ID).getSheetByName(ANDHA_YUG_SHEET_TAB_NAME);
+  var count = sheet ? Math.max(0, sheet.getLastRow() - 1) : 0;
+  var totalCapacity = ANDHA_YUG_CONFIRMED_SEATS + ANDHA_YUG_WAITLIST_SEATS;
+
+  var payload = JSON.stringify({
+    totalRegistered: count,
+    seatsLeft: Math.max(0, ANDHA_YUG_CONFIRMED_SEATS - count),
+    waitlistLeft: count >= ANDHA_YUG_CONFIRMED_SEATS ? Math.max(0, totalCapacity - count) : ANDHA_YUG_WAITLIST_SEATS,
+    // Total seats left of any kind (confirmed or waitlist) before
+    // registrations close entirely. src/main.js disables the "2 guests"
+    // option on the form (and hides the 2nd-guest contact field with it)
+    // when this drops to 1, since a 2-seat booking can't fit in a single
+    // remaining seat.
+    remaining: Math.max(0, totalCapacity - count),
+    closed: count >= totalCapacity,
+  });
+
+  if (params.callback) {
+    return ContentService
+      .createTextOutput(params.callback + '(' + payload + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  return ContentService
+    .createTextOutput(payload)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// One-time helper for authorizing this script's access to the Andha Yug
+// sheet. Run THIS function (not handleAndhaYugRegistration directly -- same
+// reasoning as test_handleNewtonRegistration above). Sends one real test
+// email to ANDHA_YUG_NOTIFY_EMAIL (the team address) and one to
+// TEST_RECIPIENT_EMAIL (standing in for the registrant), and appends one
+// real test row to the Andha Yug sheet, all clearly labelled "Authorization
+// test" -- check they landed correctly (including the QR image), then
+// delete that test row and both test emails.
+function test_handleAndhaYugRegistration() {
+  handleAndhaYugRegistration({
+    timestamp: new Date().toISOString(),
+    name: 'Authorization test -- delete me',
+    phone: '+971500000000',
+    email: TEST_RECIPIENT_EMAIL,
+    guestCount: '1',
+  });
+}
+
+// Same as test_handleAndhaYugRegistration above, but exercises the 2-guest
+// booking path (including the optional 2nd-guest contact field): this
+// should append TWO rows to the sheet (same name/phone/email/timestamp/
+// guests/2nd-guest-contact, each with its own Status -- e.g. "CNF 4, CNF 5"
+// -- and its own Booking Code), and send a single confirmation email
+// containing two distinct QR codes. Delete both test rows and the test
+// email afterward.
+function test_handleAndhaYugRegistrationTwoGuests() {
+  handleAndhaYugRegistration({
+    timestamp: new Date().toISOString(),
+    name: 'Authorization test (2 guests) -- delete me',
+    phone: '+971500000000',
+    email: TEST_RECIPIENT_EMAIL,
+    guestCount: '2',
+    secondGuestContact: '+971500000001',
+  });
+}
+
 // One-time helper for authorizing this script's access to the Newton sheet
 // (and, the first time, its external-request access for the QR code API --
 // see fetchNewtonQrBlob_). Run THIS function (not handleNewtonRegistration
@@ -1014,6 +1487,10 @@ function doGet(e) {
 
   if (params.formType === 'newtonCapacity') {
     return handleNewtonCapacityCheck_(params);
+  }
+
+  if (params.formType === 'andhaYugCapacity') {
+    return handleAndhaYugCapacityCheck_(params);
   }
 
   return ContentService

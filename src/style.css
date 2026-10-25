@@ -1725,6 +1725,13 @@ a {
   color: var(--muted);
 }
 
+/* Inline "(optional)" marker next to a field label (e.g. Andha Yug's
+   2nd-guest contact field). */
+.field-optional {
+  font-weight: 400;
+  color: var(--muted);
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

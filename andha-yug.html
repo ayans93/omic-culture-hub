@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-544K83CL');</script>
+  <!-- End Google Tag Manager -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Andha Yug | OMIC Cultural Hub</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body
+  data-event-name="Andha Yug"
+  data-event-date="Sunday, November 1, 2026"
+  data-event-time="7:30 PM"
+  data-event-venue="OMIC Theatre, OMIC Cultural Hub"
+  data-event-blurb="A dramatic reading in Hindi of Dharamvir Bharati's Andha Yug, presented by theatrewallas, followed by an interaction with the audience."
+>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-544K83CL"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="index.html" class="logo-mark" aria-label="OMIC — Home">
+        <span class="logo-mark__circle">O</span>
+        <span class="logo-mark__circle">M</span>
+        <span class="logo-mark__circle">I</span>
+        <span class="logo-mark__circle">C</span>
+        <span class="logo-mark__suffix" aria-hidden="true">
+          <span>ulture</span>
+          <span>afe</span>
+          <span>inema</span>
+        </span>
+      </a>
+
+      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navPills" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+      </button>
+
+      <nav class="nav-pills" id="navPills" aria-label="Site navigation">
+        <a href="index.html" class="nav-pill">Home</a>
+        <a href="events.html" class="nav-pill">Cultural Hub</a>
+        <a href="cafe.html" class="nav-pill">Cafe</a>
+        <a href="shows.html" class="nav-pill nav-pill--active">Shows</a>
+      </nav>
+
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="content content--top">
+      <div class="eyebrow-badge"><span class="dot dot--blue"></span>Upcoming Show</div>
+
+      <img class="poster" src="/posters/andha-yug.jpg" alt="Andha Yug — The Age of Darkness. A dramatic reading of Dharamvir Bharati's classic verse play in Hindi, presented by theatrewallas. 1st Nov 2026, 7:30 PM, OMIC, Dubai." />
+
+      <a href="#register" class="btn btn--primary btn--block">Register</a>
+    </section>
+
+    <aside class="sidebar" id="register">
+      <div class="register-card" id="registerCard">
+
+        <div id="andhaYugFormWrap">
+          <h2 class="register-card__title">Register for Andha Yug</h2>
+          <p class="register-card__subtitle">Reserve your seat for this dramatic reading in Hindi. Only 50 seats available — after that, registrations join the waitlist.</p>
+
+          <a class="register-card__location" href="https://maps.app.goo.gl/UWvTuSzfT7zGVK7BA?g_st=ic" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Goshi Warehouse City, Al Quoz, Dubai
+          </a>
+
+          <form id="andhaYugForm" novalidate>
+            <div class="field">
+              <label for="andhaYugName">Name</label>
+              <input type="text" id="andhaYugName" name="andhaYugName" placeholder="Your full name" autocomplete="name" />
+              <p class="error-message" id="andhaYugNameError"></p>
+            </div>
+
+            <div class="field">
+              <label>Number of Guests</label>
+              <div class="radio-bubble-group" id="andhaYugGuestCountGroup">
+                <label class="radio-bubble">
+                  <input type="radio" name="andhaYugGuestCount" value="1" checked />
+                  <span class="radio-bubble__dot" aria-hidden="true"></span>
+                  <span>1</span>
+                </label>
+                <label class="radio-bubble">
+                  <input type="radio" name="andhaYugGuestCount" value="2" />
+                  <span class="radio-bubble__dot" aria-hidden="true"></span>
+                  <span>2</span>
+                </label>
+              </div>
+              <p class="field-hint" id="andhaYugGuestCountHint"></p>
+            </div>
+
+            <div class="field" id="andhaYugSecondGuestWrap" hidden>
+              <label for="andhaYugSecondGuestContact">Phone number or email of 2nd guest <span class="field-optional">(optional)</span></label>
+              <input type="text" id="andhaYugSecondGuestContact" name="andhaYugSecondGuestContact" placeholder="+971 5X XXX XXXX or name@example.com" />
+              <p class="field-hint">So we can reach your guest directly if needed.</p>
+            </div>
+
+            <div class="field">
+              <label for="andhaYugPhone">Phone Number</label>
+              <div class="phone-field">
+                <select id="andhaYugPhoneCountry" class="phone-field__country" aria-label="Country code">
+                  <option value="971" selected>🇦🇪 +971</option>
+                  <option value="91">🇮🇳 +91</option>
+                </select>
+                <input type="tel" id="andhaYugPhone" name="andhaYugPhone" placeholder="5X XXX XXXX" autocomplete="tel-national" inputmode="numeric" />
+              </div>
+              <p class="error-message" id="andhaYugPhoneError"></p>
+            </div>
+
+            <div class="field">
+              <label for="andhaYugEmail">Email</label>
+              <input type="email" id="andhaYugEmail" name="andhaYugEmail" placeholder="you@example.com" autocomplete="email" />
+              <p class="error-message" id="andhaYugEmailError"></p>
+            </div>
+
+            <div class="field field--checkboxes">
+              <label class="field-checkbox">
+                <input type="checkbox" id="andhaYugConsent" name="andhaYugConsent" />
+                <span class="field-checkbox__label">I understand that the OMIC team may contact me with further details and to confirm my registration</span>
+              </label>
+              <label class="field-checkbox">
+                <input type="checkbox" id="andhaYugMarketingOptIn" name="andhaYugMarketingOptIn" />
+                <span class="field-checkbox__label">I'd like to hear about upcoming shows and events.</span>
+              </label>
+            </div>
+
+            <button type="submit" id="andhaYugSubmit" class="btn btn--primary btn--block" disabled>Register</button>
+          </form>
+        </div>
+
+        <div id="andhaYugClosedNotice" class="concluded-card" hidden>
+          <div class="concluded-card__icon" aria-hidden="true">&#10003;</div>
+          <h2 class="register-card__title">Registrations are full.</h2>
+          <p class="concluded-card__desc">We've reached capacity for Andha Yug, including the waitlist. Please check back for future shows.</p>
+          <a href="shows.html" class="btn btn--primary btn--block">Explore more shows</a>
+        </div>
+
+      </div>
+
+      <div class="register-card">
+        <h2 class="register-card__title">Know More</h2>
+        <p class="register-card__subtitle">Please contact us for more information.</p>
+
+        <div class="contact-list">
+          <a class="register-card__location" href="tel:+97143983354">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>+971 4 398 3354</span>
+          </a>
+          <a class="register-card__location" href="https://wa.me/971561857647" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-4.1-1.05L3 20l1.1-5.3A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+            <span>+971 56 185 7647</span>
+          </a>
+          <a class="register-card__location" href="mailto:gallery@omic.spot">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+            <span>gallery@omic.spot</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content content--bottom">
+
+      <div class="tag-row">
+        <span class="tag-pill">DRAMATIC READING</span>
+        <span class="tag-pill">HINDI THEATRE</span>
+        <span class="tag-pill">VERSE DRAMA</span>
+      </div>
+
+      <h1 class="title">Andha Yug: <span class="accent-blue">The Age of Darkness</span></h1>
+
+      <div class="meta-grid">
+        <div class="meta-card">
+          <span class="meta-card__dot dot--orange"></span>
+          <div>
+            <p class="meta-card__label">Date</p>
+            <p class="meta-card__value">Sunday, November 1, 2026</p>
+          </div>
+        </div>
+        <div class="meta-card">
+          <span class="meta-card__dot dot--blue"></span>
+          <div>
+            <p class="meta-card__label">Time</p>
+            <p class="meta-card__value">7:30 PM</p>
+          </div>
+        </div>
+        <div class="meta-card">
+          <span class="meta-card__dot dot--lavender"></span>
+          <div>
+            <p class="meta-card__label">Venue</p>
+            <p class="meta-card__value">OMIC Theatre, OMIC Cultural Hub</p>
+          </div>
+        </div>
+        <div class="meta-card">
+          <span class="meta-card__dot dot--green"></span>
+          <div>
+            <p class="meta-card__label">Duration</p>
+            <p class="meta-card__value">1 hr 5 min, + audience interaction</p>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>About the <span class="accent-blue">Play</span></h2>
+      <div class="prose">
+        <p>
+          One of the masterpieces of modern Hindi literature and theatre, Dharamvir
+          Bharati's <em>Andha Yug</em> is a powerful geeti-natya (verse drama) set on the
+          final day of the Mahabharata war.
+        </p>
+        <p>
+          Through evocative poetry and dramatic dialogue, it explores the devastating
+          consequences of war, hatred, revenge and the loss of moral conscience. Though
+          rooted in the Mahabharata, this timeless work speaks profoundly to our world
+          today.
+        </p>
+        <p>
+          Join theatrewallas &ndash; a theatre group from UAE &ndash; at OMIC for a
+          compelling evening of Hindi theatre, powerful words and timeless questions.
+          Experience this extraordinary literary masterpiece brought to life through the
+          power of the spoken word.
+        </p>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span><span class="accent-blue">Cast</span></h2>
+      <div class="prose">
+        <div class="guideline-block">
+          <ul class="guideline-list">
+            <li>Prakash Soni</li>
+            <li>Dr. Surabhi Bhardwaj</li>
+            <li>Vivek Jain</li>
+            <li>Dushyant Barot</li>
+            <li>Himanshu Pupneja</li>
+            <li>Praveen Pujari</li>
+            <li>Mandeep Walia</li>
+            <li>Manoj Salunke</li>
+            <li>Sheena Dogra</li>
+            <li>Sonni</li>
+            <li>Aryan Advik</li>
+            <li>Bhavna Sharma</li>
+            <li>Naimin &amp; Subrata Ravindra Singh</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Things to <span class="accent-blue">Note</span></h2>
+      <div class="prose">
+        <ul class="guideline-list">
+          <li>Please arrive 20 minutes before the show starts to allow time for seating and parking.</li>
+          <li>The reading is performed in Hindi; no subtitles will be provided.</li>
+          <li>Followed by an interaction with the audience.</li>
+          <li>While you're here, grab some drinks and snacks at our caf&eacute;.</li>
+          <li>Paid parking is available at the venue.</li>
+          <li>Please keep your registration confirmation ready before you enter the theatre.</li>
+        </ul>
+      </div>
+
+      <h2 class="section-heading"><span class="heading-dot" aria-hidden="true"></span>Amenities</h2>
+      <div class="amenity-grid">
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 16V8h3a2.5 2.5 0 0 1 0 5H9"/></svg>
+          Paid parking
+        </div>
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-5a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v5"/></svg>
+          Restrooms
+        </div>
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h13v6a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8Z"/><path d="M16 8h2a3 3 0 0 1 0 6h-2"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>
+          Cafe
+        </div>
+        <div class="amenity-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a16 16 0 0 1 20 0"/><path d="M5 12a11 11 0 0 1 14 0"/><path d="M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+          Internet
+        </div>
+      </div>
+
+      <a href="#register" class="btn btn--primary btn--block btn--bottom">
+        Register
+      </a>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <p class="site-footer__note">&copy; 2026 OMIC Cultural Hub. All events subject to change.</p>
+      <nav class="site-footer__links" aria-label="Footer navigation">
+        <a href="index.html">Home</a>
+        <a href="events.html">Cultural Hub</a>
+        <a href="cafe.html">Cafe</a>
+        <a href="shows.html">Shows</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
