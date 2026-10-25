@@ -104,17 +104,17 @@ var NEWTON_THINGS_TO_NOTE = [
 var NEWTON_MAX_GUESTS_PER_BOOKING = 2;
 
 // Team notification address for Andha Yug registrations (used in
-// handleAndhaYugRegistration below). Currently the same general inbox as
-// most other events -- change this if the team wants Andha Yug routed to a
-// dedicated address the way Newton is (see NEWTON_NOTIFY_EMAIL above).
-var ANDHA_YUG_NOTIFY_EMAIL = 'gallery@omic.spot';
+// handleAndhaYugRegistration below) -- matches the "Know More" contact
+// email shown on the Andha Yug page itself, same as Newton has its own
+// dedicated address (see NEWTON_NOTIFY_EMAIL above).
+var ANDHA_YUG_NOTIFY_EMAIL = 'cinema@omic.spot';
 
 // The "Andha Yug Show Registrations" tracking spreadsheet. Same deal as the
 // other per-event sheets above: the account this script runs as needs edit
 // access to it. Columns: Name, Phone number, Email, Registration timestamp,
 // Guests, 2nd Guest Contact, Status, Booking Code.
-// https://docs.google.com/spreadsheets/d/1ccyjf69ajncLmLROJXZAlsGzF8OOqKd15lhLIKzfn-Q
-var ANDHA_YUG_SHEET_ID = '1ccyjf69ajncLmLROJXZAlsGzF8OOqKd15lhLIKzfn-Q';
+// https://docs.google.com/spreadsheets/d/1s-e2rYvR2zyV01OOtYt8pHn21JCsQOBpSIr1gUJa6AE
+var ANDHA_YUG_SHEET_ID = '1s-e2rYvR2zyV01OOtYt8pHn21JCsQOBpSIr1gUJa6AE';
 var ANDHA_YUG_SHEET_TAB_NAME = 'Sheet1';
 
 // Same capacity shape as Newton: 50 confirmed seats, then a 30-person
