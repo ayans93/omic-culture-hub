@@ -1031,7 +1031,7 @@ function initNewtonForm() {
 // are selected, an optional "phone number or email of 2nd guest" field
 // appears so the team can reach that guest directly if needed -- it's never
 // required, so nothing here blocks submission if it's left blank. Seats are
-// capped (50 confirmed, then a 50-person waitlist), so the page also checks
+// capped (50 confirmed, then a 90-person waitlist), so the page also checks
 // current availability on load and swaps the form out for a "registrations
 // are full" notice if capacity's already been reached (or trims the
 // guest-count options, and hides the 2nd-guest field along with them, if

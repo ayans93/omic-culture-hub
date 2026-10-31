@@ -117,10 +117,10 @@ var ANDHA_YUG_NOTIFY_EMAIL = 'cinema@omic.spot';
 var ANDHA_YUG_SHEET_ID = '1s-e2rYvR2zyV01OOtYt8pHn21JCsQOBpSIr1gUJa6AE';
 var ANDHA_YUG_SHEET_TAB_NAME = 'Sheet1';
 
-// 50 confirmed seats, then a 50-person waitlist (100 total) before
+// 50 confirmed seats, then a 90-person waitlist (140 total) before
 // registrations close. (Unlike Newton, whose waitlist is 30.)
 var ANDHA_YUG_CONFIRMED_SEATS = 50;
-var ANDHA_YUG_WAITLIST_SEATS = 50;
+var ANDHA_YUG_WAITLIST_SEATS = 90;
 
 // Shown on the Andha Yug event page under "Things to Note", and copied into
 // every registrant's confirmation email (see buildAndhaYugConfirmationHtml_
@@ -931,7 +931,7 @@ function handleNewtonCapacityCheck_(params) {
 
 // Andha Yug's registration form: name, phone, email, a guest count of 1 or
 // 2, and an optional phone/email contact for the 2nd guest. Seats are
-// limited (50 confirmed, then a 50-person waitlist), so this atomically
+// limited (50 confirmed, then a 90-person waitlist), so this atomically
 // hands out the next 1 or 2 confirmation/waitlist numbers (the whole party
 // at once -- see allocateAndhaYugSeats_), generates one booking code + QR
 // code per seat, emails the registrant a single confirmation with every
