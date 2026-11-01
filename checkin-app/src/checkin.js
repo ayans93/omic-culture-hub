@@ -376,22 +376,18 @@ function guestDetailRows(guest) {
 
 // `linkedGuests` is any companion from the same 2-guest booking that this
 // same scan just checked in too (see checkinMarkSiblingRows_ in Code.gs) --
-// shown as extra detail blocks so the door can see both names at once.
+// only their count feeds the title ("2 guests marked as present"); their
+// own details aren't shown separately, just the scanned guest's.
 function renderMarkedPresent(guest, linkedGuests) {
   const linked = linkedGuests || [];
   const title = linked.length
     ? `${1 + linked.length} guests marked as present`
     : 'User marked as present';
-  const linkedBlocks = linked
-    .map((g) => `<div class="checkin-detail-list">${guestDetailRows(g)}</div>`)
-    .join('');
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--success">
       <div class="checkin-result-icon" aria-hidden="true">&#10003;</div>
       <h2 class="checkin-result-title">${escapeHtml(title)}</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
-      ${linked.length ? '<div class="checkin-linked-divider"><span>Also checked in for the same booking</span></div>' : ''}
-      ${linkedBlocks}
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
         <button type="button" class="btn btn--primary" id="resultScanNextBtn">Scan Next</button>
@@ -419,21 +415,15 @@ function renderWaitlisted(guest) {
   wireResultActions();
 }
 
-// `linkedGuests` here means a companion from the same booking who HADN'T
-// been checked in yet and just got caught up by this same scan -- distinct
-// from the scanned guest, who was already marked before this scan.
-function renderAlreadyMarked(guest, linkedGuests) {
-  const linked = linkedGuests || [];
-  const linkedBlocks = linked
-    .map((g) => `<div class="checkin-detail-list">${guestDetailRows(g)}</div>`)
-    .join('');
+// linkedGuests (any companion caught up by this same scan) no longer gets
+// its own section here -- just the scanned guest's own details, same as
+// renderMarkedPresent above.
+function renderAlreadyMarked(guest) {
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--warn">
       <div class="checkin-result-icon checkin-result-icon--warn" aria-hidden="true">!</div>
       <h2 class="checkin-result-title">User already marked as present</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
-      ${linked.length ? '<div class="checkin-linked-divider"><span>Companion also just checked in</span></div>' : ''}
-      ${linkedBlocks}
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
         <button type="button" class="btn btn--primary" id="resultScanNextBtn">Scan Next</button>
@@ -499,7 +489,9 @@ async function lookupBookingCode(code) {
       return;
     }
     if (result.alreadyMarked) {
-      renderAlreadyMarked(result.guest, result.linkedGuests);
+      renderAlreadyMarked(result.guest);
+      // A companion may have been caught up server-side even though we no
+      // longer show them separately here -- still refresh the counts.
       if (result.linkedGuests && result.linkedGuests.length) loadCheckinStats();
     } else if (result.waitlisted) {
       renderWaitlisted(result.guest);
