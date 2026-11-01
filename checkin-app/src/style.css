@@ -767,13 +767,35 @@ a {
   text-align: left;
 }
 
-/* A companion from the same 2-guest booking, shown as its own detail block
-   right after the scanned guest's -- a top border is enough to separate
-   the two without repeating the full card chrome. */
-.checkin-detail-list--linked {
-  padding-top: 14px;
-  border-top: 1px dashed var(--cream-line);
-  margin-top: -10px;
+/* Clear break before a companion's detail block (same 2-guest booking,
+   checked in by this same scan) -- a bold labeled rule, not just a thin
+   border, so it reads as a new section rather than more of the same
+   guest's details running on. */
+.checkin-linked-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+
+.checkin-linked-divider::before,
+.checkin-linked-divider::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.15;
+}
+
+.checkin-linked-divider span {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  text-align: center;
 }
 
 .checkin-detail-row {

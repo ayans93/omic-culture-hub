@@ -383,14 +383,14 @@ function renderMarkedPresent(guest, linkedGuests) {
     ? `${1 + linked.length} guests marked as present`
     : 'User marked as present';
   const linkedBlocks = linked
-    .map((g) => `<div class="checkin-detail-list checkin-detail-list--linked">${guestDetailRows(g)}</div>`)
+    .map((g) => `<div class="checkin-detail-list">${guestDetailRows(g)}</div>`)
     .join('');
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--success">
       <div class="checkin-result-icon" aria-hidden="true">&#10003;</div>
       <h2 class="checkin-result-title">${escapeHtml(title)}</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
-      ${linked.length ? '<p class="checkin-result-desc">Also checked in for the same booking:</p>' : ''}
+      ${linked.length ? '<div class="checkin-linked-divider"><span>Also checked in for the same booking</span></div>' : ''}
       ${linkedBlocks}
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
@@ -425,14 +425,14 @@ function renderWaitlisted(guest) {
 function renderAlreadyMarked(guest, linkedGuests) {
   const linked = linkedGuests || [];
   const linkedBlocks = linked
-    .map((g) => `<div class="checkin-detail-list checkin-detail-list--linked">${guestDetailRows(g)}</div>`)
+    .map((g) => `<div class="checkin-detail-list">${guestDetailRows(g)}</div>`)
     .join('');
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--warn">
       <div class="checkin-result-icon checkin-result-icon--warn" aria-hidden="true">!</div>
       <h2 class="checkin-result-title">User already marked as present</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
-      ${linked.length ? '<p class="checkin-result-desc">Their companion wasn\'t checked in yet -- just marked them too:</p>' : ''}
+      ${linked.length ? '<div class="checkin-linked-divider"><span>Companion also just checked in</span></div>' : ''}
       ${linkedBlocks}
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
