@@ -1470,6 +1470,107 @@ function test_handleUnspokenWorkshopRegistration() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Andha Yug QR backfill (one-off): the QR code images never made it into
+// the original confirmation emails for some registrants (see
+// fetchAndhaYugQrBlob_'s UrlFetchApp authorization issue, fixed separately).
+// This replies to that registrant's ORIGINAL confirmation email thread with
+// a short follow-up containing just the QR code(s) for their booking, so it
+// lands next to the email they already have instead of as a new, separate
+// message. `booking.bookingCodes` covers every seat in ONE registration
+// (1 or 2 codes) -- call this once per registration, not once per seat.
+//
+// Needs Gmail access (GmailApp), which this script has never used before
+// (every other email here goes out via the lighter-weight MailApp, which
+// can't search for or reply within an existing thread) -- so the FIRST run
+// of this, or of test_sendAndhaYugQrBackfillSingle below, will need you to
+// click through a new Google authorization prompt in the Apps Script
+// editor. Do that via the test function below, not a real booking, the
+// same reasoning as every other test_* helper in this file.
+function sendAndhaYugQrBackfill_(booking) {
+  var email = String((booking && booking.email) || '').trim();
+  var bookingCodes = (booking && booking.bookingCodes) || [];
+  if (!email) throw new Error('sendAndhaYugQrBackfill_: booking has no email');
+  if (!bookingCodes.length) throw new Error('sendAndhaYugQrBackfill_: booking has no bookingCodes');
+
+  var qrBlobs = bookingCodes.map(function (code, index) {
+    return fetchAndhaYugQrBlob_(code, index);
+  });
+
+  var inlineImages = {};
+  qrBlobs.forEach(function (blob, index) {
+    if (blob) inlineImages['backfillQr' + index] = blob;
+  });
+
+  var qrBlock = qrBlobs.map(function (blob, index) {
+    if (!blob) return '';
+    return '<img src="cid:backfillQr' + index + '" width="160" height="160" alt="Booking QR code ' + (index + 1) + '" style="display:inline-block;margin:8px;border-radius:8px;" />';
+  }).join('');
+
+  var plural = bookingCodes.length > 1;
+  var htmlBody =
+    '<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;">' +
+      '<p style="font-size:15px;color:#17140f;margin:0 0 16px;">Here\'s your QR code' + (plural ? 's' : '') + ' for tonight\'s show.</p>' +
+      '<div style="text-align:center;">' + qrBlock + '</div>' +
+      '<p style="font-size:12.5px;color:#8a8378;margin-top:16px;">Booking code' + (plural ? 's' : '') + ': ' + bookingCodes.join(', ') + '</p>' +
+    '</div>';
+  var textBody = "Here's your QR code" + (plural ? 's' : '') + " for tonight's show.\n\nBooking code" +
+    (plural ? 's' : '') + ': ' + bookingCodes.join(', ');
+
+  // Find the original Andha Yug confirmation, sent by this account to this
+  // registrant, so the QR codes land as a reply in that same thread.
+  var threads = GmailApp.search('to:' + email + ' subject:(Andha Yug) in:sent', 0, 5);
+  if (threads.length) {
+    threads[0].reply(textBody, { htmlBody: htmlBody, inlineImages: inlineImages, name: SENDER_NAME });
+    return { ok: true, repliedToThread: true, email: email, bookingCodes: bookingCodes };
+  }
+
+  // No existing thread found (e.g. the original confirmation isn't in this
+  // account's Sent mail) -- fall back to a fresh email rather than silently
+  // skipping this registrant.
+  GmailApp.sendEmail(email, "Your QR code for tonight's show", textBody, {
+    htmlBody: htmlBody,
+    inlineImages: inlineImages,
+    name: SENDER_NAME,
+  });
+  return { ok: true, repliedToThread: false, email: email, bookingCodes: bookingCodes };
+}
+
+// Sends the backfill to several registrations in one run, pausing briefly
+// between sends to stay well under Gmail's rate limits. `bookings` is an
+// array of { email, bookingCodes } -- group the rows you were given by
+// matching name/phone/email/timestamp first (2 rows sharing all four =
+// one 2-guest registration = one entry here with both booking codes).
+// Returns a per-booking result list so you can see exactly who succeeded
+// and who needs a manual follow-up.
+function sendAndhaYugQrBackfillBatch_(bookings) {
+  var results = [];
+  for (var i = 0; i < bookings.length; i++) {
+    try {
+      results.push(sendAndhaYugQrBackfill_(bookings[i]));
+    } catch (err) {
+      results.push({ ok: false, email: bookings[i] && bookings[i].email, error: String(err) });
+    }
+    Utilities.sleep(1500);
+  }
+  Logger.log(JSON.stringify(results, null, 2));
+  return results;
+}
+
+// One-off test run for the QR backfill above, using the test registration
+// you supplied (Ayan Saha, 2 confirmed guests, booking codes U71W-IJQT and
+// RDQC-KW35). Run THIS function from the Apps Script editor -- it will
+// prompt for Gmail authorization the first time, then reply to that
+// booking's original confirmation thread (or send a fresh email if that
+// thread isn't found in this account's Sent mail) with both QR codes.
+function test_sendAndhaYugQrBackfillSingle() {
+  var result = sendAndhaYugQrBackfill_({
+    email: 'ayan@dviu.in',
+    bookingCodes: ['U71W-IJQT', 'RDQC-KW35'],
+  });
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
 function getOrCreateArtworkFolder() {
   var folders = DriveApp.getFoldersByName(ARTWORK_DRIVE_FOLDER_NAME);
   if (folders.hasNext()) {
