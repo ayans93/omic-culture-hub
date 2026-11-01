@@ -1474,19 +1474,26 @@ function test_handleUnspokenWorkshopRegistration() {
 // Andha Yug QR backfill (one-off): the QR code images never made it into
 // the original confirmation emails for some registrants (see
 // fetchAndhaYugQrBlob_'s UrlFetchApp authorization issue, fixed separately).
-// This replies to that registrant's ORIGINAL confirmation email thread with
-// a short follow-up containing just the QR code(s) for their booking, so it
-// lands next to the email they already have instead of as a new, separate
-// message. `booking.bookingCodes` covers every seat in ONE registration
-// (1 or 2 codes) -- call this once per registration, not once per seat.
+// This sends that registrant a short follow-up containing just the QR
+// code(s) for their booking, with a "Re:" subject matching their original
+// confirmation/waitlist email so it lands grouped with it in their inbox.
+// `booking.bookingCodes` covers every seat in ONE registration (1 or 2
+// codes) -- call this once per registration, not once per seat.
 //
 // Needs Gmail access (GmailApp), which this script has never used before
 // (every other email here goes out via the lighter-weight MailApp, which
-// can't search for or reply within an existing thread) -- so the FIRST run
-// of this, or of test_sendAndhaYugQrBackfillSingle below, will need you to
-// click through a new Google authorization prompt in the Apps Script
-// editor. Do that via the test function below, not a real booking, the
-// same reasoning as every other test_* helper in this file.
+// can't search Sent mail) -- so the FIRST run of this, or of
+// test_sendAndhaYugQrBackfillSingle below, will need you to click through
+// a new Google authorization prompt in the Apps Script editor. Do that via
+// the test function below, not a real booking, the same reasoning as every
+// other test_* helper in this file.
+//
+// IMPORTANT, learned the hard way: do NOT use GmailThread.reply()/replyAll()
+// here. Both always reply to the SENDER of the thread's *last* message --
+// and every message in these threads was sent BY this same script account
+// (registrants never write back), so reply() just emails this account's own
+// inbox, not the registrant. We send a fresh GmailApp.sendEmail() straight
+// to booking.email instead, which is the actual registrant's address.
 function sendAndhaYugQrBackfill_(booking) {
   var email = String((booking && booking.email) || '').trim();
   var bookingCodes = (booking && booking.bookingCodes) || [];
@@ -1517,23 +1524,25 @@ function sendAndhaYugQrBackfill_(booking) {
   var textBody = "Here's your QR code" + (plural ? 's' : '') + " for tonight's show.\n\nBooking code" +
     (plural ? 's' : '') + ': ' + bookingCodes.join(', ');
 
-  // Find the original Andha Yug confirmation, sent by this account to this
-  // registrant, so the QR codes land as a reply in that same thread.
+  // Find the original Andha Yug confirmation/waitlist email this account
+  // sent to this registrant -- purely to borrow its subject line (prefixed
+  // "Re:") so the follow-up groups with it in their inbox. We never reply()
+  // to it (see note above): we always send straight to `email`.
   var threads = GmailApp.search('to:' + email + ' subject:(Andha Yug) in:sent', 0, 5);
-  if (threads.length) {
-    threads[0].reply(textBody, { htmlBody: htmlBody, inlineImages: inlineImages, name: SENDER_NAME });
-    return { ok: true, repliedToThread: true, email: email, bookingCodes: bookingCodes };
+  var subject = "Your QR code for tonight's show";
+  var foundOriginalThread = threads.length > 0;
+  if (foundOriginalThread) {
+    var lastMessage = threads[0].getMessages().slice(-1)[0];
+    var originalSubject = lastMessage.getSubject();
+    subject = /^re:/i.test(originalSubject) ? originalSubject : 'Re: ' + originalSubject;
   }
 
-  // No existing thread found (e.g. the original confirmation isn't in this
-  // account's Sent mail) -- fall back to a fresh email rather than silently
-  // skipping this registrant.
-  GmailApp.sendEmail(email, "Your QR code for tonight's show", textBody, {
+  GmailApp.sendEmail(email, subject, textBody, {
     htmlBody: htmlBody,
     inlineImages: inlineImages,
     name: SENDER_NAME,
   });
-  return { ok: true, repliedToThread: false, email: email, bookingCodes: bookingCodes };
+  return { ok: true, foundOriginalThread: foundOriginalThread, subject: subject, email: email, bookingCodes: bookingCodes };
 }
 
 // Sends the backfill to several registrations in one run, pausing briefly
@@ -1560,9 +1569,8 @@ function sendAndhaYugQrBackfillBatch_(bookings) {
 // One-off test run for the QR backfill above, using the test registration
 // you supplied (Ayan Saha, 2 confirmed guests, booking codes U71W-IJQT and
 // RDQC-KW35). Run THIS function from the Apps Script editor -- it will
-// prompt for Gmail authorization the first time, then reply to that
-// booking's original confirmation thread (or send a fresh email if that
-// thread isn't found in this account's Sent mail) with both QR codes.
+// prompt for Gmail authorization the first time, then send an email with
+// both QR codes directly to ayan@dviu.in (the registrant's own address).
 function test_sendAndhaYugQrBackfillSingle() {
   var result = sendAndhaYugQrBackfill_({
     email: 'ayan@dviu.in',
