@@ -1604,6 +1604,70 @@ function test_sendAndhaYugQrBackfillSingle() {
   Logger.log(JSON.stringify(result, null, 2));
 }
 
+// ---------------------------------------------------------------------------
+// REAL SEND: the final Andha Yug QR-backfill run, from the finalized list
+// of 40 registrations (GenerateQRSendEmail_Final.csv), grouped into one
+// entry per registration (2 rows sharing name/phone/email/timestamp ->
+// both booking codes under one entry, so each registrant gets exactly one
+// email covering every seat in their booking). Includes the Ayan Saha /
+// ayan@dviu.in row at the bottom of that CSV (CNF 59/60, U71W-IJQT &
+// RDQC-KW35) -- the same booking already used for
+// test_sendAndhaYugQrBackfillSingle above, included here too per request.
+//
+// Run THIS function from the Apps Script editor when ready to send for
+// real -- it will email all 40 registrants below, pausing 1.5s between
+// each. Check the execution log afterwards: sendAndhaYugQrBackfillBatch_
+// returns ok:false for any entry that failed, so you can see at a glance
+// who needs a manual resend.
+function runAndhaYugQrBackfillFinalBatch() {
+  var bookings = [
+    { email: 'ayushtibra599@gmail.com', bookingCodes: ['KD65-O6VJ'] }, // Ayush
+    { email: 'ramkudvan@gmail.com', bookingCodes: ['H6J8-N8HB'] }, // Ramakanth Kudva n
+    { email: 'ajayraghuvanshi@gmail.com', bookingCodes: ['LI1P-BC26', 'X8MD-ZKIX'] }, // Ajay Raghuvanshi
+    { email: 'Manaswitas@gmail.com', bookingCodes: ['49E8-E00S', 'UAXW-2V9G'] }, // Manaswita Singh
+    { email: 'dhanyajay11@gmail.com', bookingCodes: ['O28O-BYYY'] }, // Dhanya Jayakumar
+    { email: 'suman_devgan@yahoo.com', bookingCodes: ['FZS1-MS90'] }, // Suman devgan
+    { email: 'muffi.bootwala@gmail.com', bookingCodes: ['1AYP-4XEG'] }, // Mufaddal Bootwala
+    { email: 'amlesachin@gmail.com', bookingCodes: ['L06W-ZCLG'] }, // Sachin Amle
+    { email: 'vidyapshenoy@gmail.com', bookingCodes: ['ZTWV-KOWO', 'H404-Z4SY'] }, // Vidya Praveen Shenoy
+    { email: 'abhyshekksharma@gmail.com', bookingCodes: ['6WKD-SN1Q'] }, // Abhishek Sharma
+    { email: 'somyamalik312@gmail.com', bookingCodes: ['5VDY-VJGN'] }, // Somya Malik
+    { email: 'garimasachdevkapoor@gmail.com', bookingCodes: ['GTDC-SNY1'] }, // Garima Sachdev Kapoor (Oct 27 registration)
+    { email: 'ajesh.kumar@gmail.com', bookingCodes: ['DZLI-64M9'] }, // Ajesh kumar TS
+    { email: 'souvik.cv.use@gmail.com', bookingCodes: ['VK9X-HZJP'] }, // Souvik Mazumdar
+    { email: 'learnwithramya@gmail.com', bookingCodes: ['7JLC-PBNS', 'MAEF-LDBP'] }, // Ramya Lakshmi
+    { email: 'aditimaurya15@gmail.com', bookingCodes: ['0FU6-MESV', '4SLV-HYGC'] }, // Aditi maurya
+    { email: 'yasir.salman9162@gmail.com', bookingCodes: ['H0FZ-P9XW', 'E4WJ-YBZT'] }, // Salman Yasir
+    { email: 'Somya.priyadarahini14@gmail.com', bookingCodes: ['VXE6-F9BT'] }, // Somya priyadarshini
+    { email: 'hemakhare@gmail.com', bookingCodes: ['D9LW-E1PV'] }, // Hema Khare
+    { email: 'tumpa2805@gmail.com', bookingCodes: ['Y9B7-66XY', '40IG-KCDD'] }, // Dr. Tumpa Banerjee
+    { email: 'Vijaynitc06@gmail.com', bookingCodes: ['8AGX-XNRS', '6COI-WR56'] }, // Vijay kumar
+    { email: 'Madhuvpkl@gmail.com', bookingCodes: ['K9KC-MPRP'] }, // Madhu Bala
+    { email: 'abhitiwari8911@gmail.com', bookingCodes: ['E0VQ-3F2C', '6H8W-9XFS'] }, // Abhishek Tiwari
+    { email: 'hartojsinghbhasin@gmail.com', bookingCodes: ['50D1-TROO', 'ZEAT-4PSA'] }, // Hartoj Singh Bhasin
+    { email: 'amrishkhandelwal@gmail.com', bookingCodes: ['P2WW-7FN0'] }, // Amrish Khandelwal
+    { email: 'nantabharti@gmail.com', bookingCodes: ['64YB-9JSZ', '57M8-0KWF'] }, // Bharti Nanta
+    { email: 'vithalgajria@gmail.com', bookingCodes: ['NUH3-B71U', 'EB5F-OZ94'] }, // Vithal Gajria
+    { email: 'mkhiara79@gmail.com', bookingCodes: ['UI5H-2D23', 'F6I2-JNYD'] }, // Manish Khiara
+    { email: 'harjeetkohli1975@gmail.com', bookingCodes: ['85OX-6WGU', 'CAUN-82MT'] }, // Adv Harjeet kaur
+    { email: 'aditya.tata@gmail.com', bookingCodes: ['39TQ-USPF'] }, // Aditya Singh
+    { email: 'asif.sssprop@gmail.com', bookingCodes: ['R8Z7-LYJU'] }, // Asif Abdul Hameed
+    { email: 'arvindepost@outlook.com', bookingCodes: ['NWVG-U341'] }, // Arvind Kumar
+    { email: 'prachibishnoi@gmail.com', bookingCodes: ['5FFP-NF7I', 'B3XN-6XF7'] }, // Prachi Bishnoi
+    { email: 'Kanakdxb24@gmail.com', bookingCodes: ['GWIG-DX99', '4VIV-RQC0'] }, // Kanak Tibrewal
+    { email: 'vikas.mehta@hotmail.com', bookingCodes: ['4DRO-E841', 'DGGW-EU0V'] }, // vikas
+    { email: 'poduval.vinod@gmail.com', bookingCodes: ['ZG6U-6IPK'] }, // Vinod Poduval
+    { email: 'rsharmabhavishya@gmail.com', bookingCodes: ['1Y4S-LIO8'] }, // Bhavishya Sharma
+    { email: 'garimasachdevkapoor@gmail.com', bookingCodes: ['5UQH-EM6F', 'Q2GR-NE9L'] }, // Garima Sachdev Kapoor (Oct 31 registration -- same person, separate booking)
+    { email: 'bhartinanta96@gmail.com', bookingCodes: ['71MQ-L7FK', 'YZKF-4D8J'] }, // Sarthak Sharma
+    { email: 'ayan@dviu.in', bookingCodes: ['U71W-IJQT', 'RDQC-KW35'] }, // Ayan Saha (test booking, included per request)
+  ];
+  var results = sendAndhaYugQrBackfillBatch_(bookings);
+  var failed = results.filter(function (r) { return !r.ok; });
+  Logger.log(bookings.length + ' bookings processed, ' + failed.length + ' failed.');
+  if (failed.length) Logger.log('FAILED: ' + JSON.stringify(failed, null, 2));
+}
+
 function getOrCreateArtworkFolder() {
   var folders = DriveApp.getFoldersByName(ARTWORK_DRIVE_FOLDER_NAME);
   if (folders.hasNext()) {
