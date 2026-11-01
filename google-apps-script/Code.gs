@@ -1116,6 +1116,24 @@ function fetchAndhaYugQrBlob_(bookingCode, index) {
   }
 }
 
+// Fetches the Andha Yug event poster straight from the live site (the same
+// file the show's own page uses: public/posters/andha-yug-thumb.jpg ->
+// served at /posters/andha-yug-thumb.jpg) so it can be inlined into an
+// email, the same cid-attachment approach as fetchAndhaYugQrBlob_ above --
+// using the thumb (960x1200, ~250KB) rather than the full-size poster to
+// keep the email reasonably light.
+function fetchAndhaYugPosterBlob_() {
+  try {
+    var posterUrl = 'https://omic.spot/posters/andha-yug-thumb.jpg';
+    var response = UrlFetchApp.fetch(posterUrl, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) return null;
+    return response.getBlob().setName('andha-yug-poster.jpg');
+  } catch (err) {
+    Logger.log('fetchAndhaYugPosterBlob_ failed: ' + err);
+    return null;
+  }
+}
+
 // Sends one confirmation email covering every seat in the booking (1 or 2).
 // `info.allocations` is the array allocateAndhaYugSeats_ returned: each
 // entry gets its own QR code, inlined as cid "andhaYugQr0", "andhaYugQr1",
@@ -1503,16 +1521,22 @@ function sendAndhaYugQrBackfill_(booking) {
   var qrBlobs = bookingCodes.map(function (code, index) {
     return fetchAndhaYugQrBlob_(code, index);
   });
+  var posterBlob = fetchAndhaYugPosterBlob_();
 
   var inlineImages = {};
   qrBlobs.forEach(function (blob, index) {
     if (blob) inlineImages['backfillQr' + index] = blob;
   });
+  if (posterBlob) inlineImages.backfillPoster = posterBlob;
 
   var qrBlock = qrBlobs.map(function (blob, index) {
     if (!blob) return '';
     return '<img src="cid:backfillQr' + index + '" width="160" height="160" alt="Booking QR code ' + (index + 1) + '" style="display:inline-block;margin:8px;border-radius:8px;" />';
   }).join('');
+
+  var posterBlock = posterBlob
+    ? '<img src="cid:backfillPoster" width="280" alt="Andha Yug event poster" style="display:block;width:280px;max-width:100%;height:auto;margin:20px auto 0;border-radius:8px;" />'
+    : '';
 
   var plural = bookingCodes.length > 1;
   var htmlBody =
@@ -1520,6 +1544,7 @@ function sendAndhaYugQrBackfill_(booking) {
       '<p style="font-size:15px;color:#17140f;margin:0 0 16px;">Here\'s your QR code' + (plural ? 's' : '') + ' for tonight\'s show.</p>' +
       '<div style="text-align:center;">' + qrBlock + '</div>' +
       '<p style="font-size:12.5px;color:#8a8378;margin-top:16px;">Booking code' + (plural ? 's' : '') + ': ' + bookingCodes.join(', ') + '</p>' +
+      posterBlock +
     '</div>';
   var textBody = "Here's your QR code" + (plural ? 's' : '') + " for tonight's show.\n\nBooking code" +
     (plural ? 's' : '') + ': ' + bookingCodes.join(', ');
