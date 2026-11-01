@@ -767,6 +767,15 @@ a {
   text-align: left;
 }
 
+/* A companion from the same 2-guest booking, shown as its own detail block
+   right after the scanned guest's -- a top border is enough to separate
+   the two without repeating the full card chrome. */
+.checkin-detail-list--linked {
+  padding-top: 14px;
+  border-top: 1px dashed var(--cream-line);
+  margin-top: -10px;
+}
+
 .checkin-detail-row {
   display: flex;
   align-items: baseline;
@@ -834,10 +843,14 @@ a {
 }
 
 .checkin-table-wrap {
-  /* No horizontal scrollbar -- the table below uses a fixed layout with
-     percentage-width columns and wraps long cell content instead, so it
-     always fits within this wrapper's width. A long guest list just grows
-     taller (normal page vertical scrolling), never wider. */
+  /* Now that there are 10 columns, holding every column to a shrink-to-fit
+     percentage made small-screen text unreadably cramped. Each column now
+     gets a fixed, comfortable px width instead, and this wrapper scrolls
+     horizontally once the table's total width (see .checkin-table
+     min-width below) is wider than the screen -- a long guest list still
+     just grows taller too (normal page vertical scrolling). */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--cream-line);
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
@@ -845,6 +858,7 @@ a {
 
 .checkin-table {
   width: 100%;
+  min-width: 1180px;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: 13.5px;
@@ -860,21 +874,23 @@ a {
 }
 
 .checkin-table th:nth-child(2),
-.checkin-table td:nth-child(2) { width: 16%; }   /* Name */
+.checkin-table td:nth-child(2) { width: 150px; }  /* Name */
 .checkin-table th:nth-child(3),
-.checkin-table td:nth-child(3) { width: 11%; }   /* Phone */
+.checkin-table td:nth-child(3) { width: 115px; }  /* Phone */
 .checkin-table th:nth-child(4),
-.checkin-table td:nth-child(4) { width: 19%; }   /* Email */
+.checkin-table td:nth-child(4) { width: 195px; }  /* Email */
 .checkin-table th:nth-child(5),
-.checkin-table td:nth-child(5) { width: 7%; }    /* Guests */
+.checkin-table td:nth-child(5) { width: 70px; }   /* Guests */
 .checkin-table th:nth-child(6),
-.checkin-table td:nth-child(6) { width: 9%; }    /* Status */
+.checkin-table td:nth-child(6) { width: 95px; }   /* Status */
 .checkin-table th:nth-child(7),
-.checkin-table td:nth-child(7) { width: 12%; }   /* User Type */
+.checkin-table td:nth-child(7) { width: 110px; }  /* User Type */
 .checkin-table th:nth-child(8),
-.checkin-table td:nth-child(8) { width: 14%; }   /* 2nd Guest Contact */
+.checkin-table td:nth-child(8) { width: 150px; }  /* Invite Confirmation */
 .checkin-table th:nth-child(9),
-.checkin-table td:nth-child(9) { width: 12%; }   /* Check-in */
+.checkin-table td:nth-child(9) { width: 160px; }  /* 2nd Guest Contact */
+.checkin-table th:nth-child(10),
+.checkin-table td:nth-child(10) { width: 120px; } /* Check-in */
 
 .checkin-table th {
   background: #fdfbf7;
@@ -887,6 +903,24 @@ a {
 
 .checkin-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Invite Confirmation status colors -- fall back to the default ink color
+   (no extra class) for a blank cell or an unexpected value. */
+.checkin-invite {
+  font-weight: 600;
+}
+
+.checkin-invite--confirmed {
+  color: var(--green);
+}
+
+.checkin-invite--noresponse {
+  color: var(--orange);
+}
+
+.checkin-invite--cancelled {
+  color: var(--error);
 }
 
 .checkin-table__check {
@@ -988,6 +1022,19 @@ a {
   .checkin-table td {
     display: block;
     width: 100%;
+  }
+
+  /* The desktop table sets min-width: 1180px so it scrolls horizontally
+     instead of squeezing on wider screens (see .checkin-table above) --
+     but below 700px it switches to stacked cards instead, so that
+     min-width needs to go, or the wrapper would scroll horizontally
+     to fit 1180px even though every cell is already full-width. */
+  .checkin-table {
+    min-width: 0;
+  }
+
+  .checkin-table-wrap {
+    overflow-x: visible;
   }
 
   /* The desktop column percentage-widths (.checkin-table td:nth-child(N)

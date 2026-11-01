@@ -30,10 +30,11 @@ var CHECKIN_SHEET_ID = '1sHlIgHW2MNuZrkQ9PbtTx76SFcB_JAneYamtkcWg2Gg';
 var CHECKIN_SHEET_TAB_NAME = 'Final List';
 
 // "Final List" column order (1-indexed, matches the sheet's header row).
-// Columns 10 (Invite Confirmation?) and 11 (2nd Guest Contact) were added
-// to the sheet later -- only the ones this app actually reads/writes are
-// listed here. SECOND_GUEST_CONTACT (column K) holds the optional contact
-// info collected for a guest's second ticket.
+// Columns 10 (Invite Confirmation) and 11 (2nd Guest Contact) were added to
+// the sheet later. INVITE_CONFIRMATION (column J) holds one of three text
+// values -- "Confirmed", "No response", "Cancelled" -- shown in the Guest
+// List with matching colors. SECOND_GUEST_CONTACT (column K) holds the
+// optional contact info collected for a guest's second ticket.
 var CHECKIN_COL = {
   NAME: 1,
   PHONE: 2,
@@ -44,6 +45,7 @@ var CHECKIN_COL = {
   BOOKING_CODE: 7,
   USER_TYPE: 8,
   CHECKED_IN: 9,
+  INVITE_CONFIRMATION: 10,
   SECOND_GUEST_CONTACT: 11,
 };
 
@@ -111,8 +113,62 @@ function checkinRowToGuest_(row, values) {
     bookingCode: values[CHECKIN_COL.BOOKING_CODE - 1] || '',
     userType: values[CHECKIN_COL.USER_TYPE - 1] || '',
     checkedIn: values[CHECKIN_COL.CHECKED_IN - 1] === true,
+    inviteConfirmation: values[CHECKIN_COL.INVITE_CONFIRMATION - 1] || '',
     secondGuestContact: values[CHECKIN_COL.SECOND_GUEST_CONTACT - 1] || '',
   };
+}
+
+// A 2-guest booking occupies two rows that share the same registrant and
+// the same submission instant (name, phone, email, timestamp all equal),
+// but each row got its own Booking Code/QR when the confirmation email
+// went out. For tonight, scanning EITHER of those two QR codes should
+// check both guests in -- so once the scanned row is matched, this finds
+// any other row from the same booking. Manually-added "Guest" rows have no
+// phone/email/timestamp at all, so they never accidentally match each
+// other here.
+function checkinFindSiblingRows_(data, matchedIndex) {
+  var m = data[matchedIndex];
+  var name = String(m[CHECKIN_COL.NAME - 1] || '').trim();
+  var phone = String(m[CHECKIN_COL.PHONE - 1] || '').trim();
+  var email = String(m[CHECKIN_COL.EMAIL - 1] || '').trim().toLowerCase();
+  var timestamp = String(m[CHECKIN_COL.TIMESTAMP - 1] || '').trim();
+  if (!phone && !email && !timestamp) return [];
+
+  var siblings = [];
+  for (var i = 1; i < data.length; i++) {
+    if (i === matchedIndex) continue;
+    var row = data[i];
+    if (
+      String(row[CHECKIN_COL.NAME - 1] || '').trim() === name &&
+      String(row[CHECKIN_COL.PHONE - 1] || '').trim() === phone &&
+      String(row[CHECKIN_COL.EMAIL - 1] || '').trim().toLowerCase() === email &&
+      String(row[CHECKIN_COL.TIMESTAMP - 1] || '').trim() === timestamp
+    ) {
+      siblings.push(i);
+    }
+  }
+  return siblings;
+}
+
+// Marks every not-yet-checked-in, non-waitlisted sibling of `matchedIndex`
+// as checked in too, and returns the guest objects for whichever ones this
+// call actually marked (so the frontend can tell the door staff "2 guests
+// marked as present" instead of just one). Keeps `data` in sync so a
+// second lookup in the same request sees the fresh CHECKED_IN value.
+function checkinMarkSiblingRows_(sheet, data, matchedIndex) {
+  var siblingIndexes = checkinFindSiblingRows_(data, matchedIndex);
+  var marked = [];
+  for (var s = 0; s < siblingIndexes.length; s++) {
+    var idx = siblingIndexes[s];
+    var siblingGuest = checkinRowToGuest_(idx + 1, data[idx]);
+    if (siblingGuest.checkedIn) continue;
+    if (checkinIsWaitlisted_(siblingGuest.status)) continue;
+    sheet.getRange(idx + 1, CHECKIN_COL.CHECKED_IN).setValue(true);
+    data[idx][CHECKIN_COL.CHECKED_IN - 1] = true;
+    siblingGuest.checkedIn = true;
+    marked.push(siblingGuest);
+  }
+  return marked;
 }
 
 // Scanner tab: looks up a scanned booking code. LockService keeps two
@@ -158,9 +214,13 @@ function handleCheckinLookup_(params) {
       // Ground truth first: if the sheet already says this guest is
       // checked in (whether from an earlier scan or a manual Guest List
       // mark), report that -- regardless of waitlist status, since
-      // someone already made the call to let them in.
+      // someone already made the call to let them in. Still catch up a
+      // companion from the same 2-guest booking if THEY haven't been
+      // marked yet (e.g. only one of the pair's codes was scanned, or one
+      // was marked from the Guest List tab).
       if (guest.checkedIn) {
-        return checkinRespond_({ ok: true, found: true, alreadyMarked: true, guest: guest }, params);
+        var caughtUp = checkinMarkSiblingRows_(sheet, data, i);
+        return checkinRespond_({ ok: true, found: true, alreadyMarked: true, guest: guest, linkedGuests: caughtUp }, params);
       }
 
       // Waitlisted and not yet checked in: don't mark present. Door staff
@@ -170,8 +230,13 @@ function handleCheckinLookup_(params) {
       }
 
       sheet.getRange(rowNumber, CHECKIN_COL.CHECKED_IN).setValue(true);
+      data[i][CHECKIN_COL.CHECKED_IN - 1] = true;
       guest.checkedIn = true;
-      return checkinRespond_({ ok: true, found: true, alreadyMarked: false, guest: guest }, params);
+
+      // A 2-guest booking's pair shares one scan: whichever of their two
+      // QR codes shows up at the door checks both of them in.
+      var linkedGuests = checkinMarkSiblingRows_(sheet, data, i);
+      return checkinRespond_({ ok: true, found: true, alreadyMarked: false, guest: guest, linkedGuests: linkedGuests }, params);
     }
 
     return checkinRespond_({ ok: true, found: false }, params);
@@ -303,6 +368,49 @@ function handleCheckinStats_(params) {
   }, params);
 }
 
+// One-off admin action: clears the Checked In column for every row, so the
+// door can start a fresh check-in run (used ahead of tonight's Andha Yug
+// show, after testing with the Newton data). Not exposed in the UI --
+// triggered by opening a URL with this formType plus valid admin
+// credentials, same auth check as every other action here.
+function handleCheckinResetAll_(params) {
+  if (!checkinAuthOk_(params)) {
+    return checkinRespond_({ ok: false, error: 'unauthorized' }, params);
+  }
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (lockErr) {
+    return checkinRespond_({ ok: false, error: 'busy_try_again' }, params);
+  }
+
+  try {
+    var sheet = SpreadsheetApp.openById(CHECKIN_SHEET_ID).getSheetByName(CHECKIN_SHEET_TAB_NAME);
+    if (!sheet) {
+      return checkinRespond_({ ok: false, error: 'sheet_unavailable' }, params);
+    }
+
+    var lastRow = sheet.getLastRow();
+    var reset = 0;
+    if (lastRow >= 2) {
+      var checkedInRange = sheet.getRange(2, CHECKIN_COL.CHECKED_IN, lastRow - 1, 1);
+      var values = checkedInRange.getValues();
+      for (var i = 0; i < values.length; i++) {
+        if (values[i][0] === true) reset++;
+        values[i][0] = false;
+      }
+      checkedInRange.setValues(values);
+    }
+
+    return checkinRespond_({ ok: true, reset: reset }, params);
+  } catch (err) {
+    return checkinRespond_({ ok: false, error: 'unexpected_error' }, params);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // Lets you sanity-check the deployment by opening the Web App URL directly
 // in a browser (a plain GET with no formType).
 function doGet(e) {
@@ -326,6 +434,10 @@ function doGet(e) {
 
   if (params.formType === 'checkinStats') {
     return handleCheckinStats_(params);
+  }
+
+  if (params.formType === 'checkinResetAll') {
+    return handleCheckinResetAll_(params);
   }
 
   return ContentService

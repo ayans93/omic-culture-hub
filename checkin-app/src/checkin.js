@@ -374,12 +374,24 @@ function guestDetailRows(guest) {
   `;
 }
 
-function renderMarkedPresent(guest) {
+// `linkedGuests` is any companion from the same 2-guest booking that this
+// same scan just checked in too (see checkinMarkSiblingRows_ in Code.gs) --
+// shown as extra detail blocks so the door can see both names at once.
+function renderMarkedPresent(guest, linkedGuests) {
+  const linked = linkedGuests || [];
+  const title = linked.length
+    ? `${1 + linked.length} guests marked as present`
+    : 'User marked as present';
+  const linkedBlocks = linked
+    .map((g) => `<div class="checkin-detail-list checkin-detail-list--linked">${guestDetailRows(g)}</div>`)
+    .join('');
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--success">
       <div class="checkin-result-icon" aria-hidden="true">&#10003;</div>
-      <h2 class="checkin-result-title">User marked as present</h2>
+      <h2 class="checkin-result-title">${escapeHtml(title)}</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
+      ${linked.length ? '<p class="checkin-result-desc">Also checked in for the same booking:</p>' : ''}
+      ${linkedBlocks}
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
         <button type="button" class="btn btn--primary" id="resultScanNextBtn">Scan Next</button>
@@ -407,12 +419,21 @@ function renderWaitlisted(guest) {
   wireResultActions();
 }
 
-function renderAlreadyMarked(guest) {
+// `linkedGuests` here means a companion from the same booking who HADN'T
+// been checked in yet and just got caught up by this same scan -- distinct
+// from the scanned guest, who was already marked before this scan.
+function renderAlreadyMarked(guest, linkedGuests) {
+  const linked = linkedGuests || [];
+  const linkedBlocks = linked
+    .map((g) => `<div class="checkin-detail-list checkin-detail-list--linked">${guestDetailRows(g)}</div>`)
+    .join('');
   scannerResult.innerHTML = `
     <div class="checkin-result-card checkin-result-card--warn">
       <div class="checkin-result-icon checkin-result-icon--warn" aria-hidden="true">!</div>
       <h2 class="checkin-result-title">User already marked as present</h2>
       <div class="checkin-detail-list">${guestDetailRows(guest)}</div>
+      ${linked.length ? '<p class="checkin-result-desc">Their companion wasn\'t checked in yet -- just marked them too:</p>' : ''}
+      ${linkedBlocks}
       <div class="checkin-result-actions">
         <button type="button" class="btn btn--secondary" id="resultHomeBtn">Home</button>
         <button type="button" class="btn btn--primary" id="resultScanNextBtn">Scan Next</button>
@@ -478,11 +499,12 @@ async function lookupBookingCode(code) {
       return;
     }
     if (result.alreadyMarked) {
-      renderAlreadyMarked(result.guest);
+      renderAlreadyMarked(result.guest, result.linkedGuests);
+      if (result.linkedGuests && result.linkedGuests.length) loadCheckinStats();
     } else if (result.waitlisted) {
       renderWaitlisted(result.guest);
     } else {
-      renderMarkedPresent(result.guest);
+      renderMarkedPresent(result.guest, result.linkedGuests);
       loadCheckinStats();
     }
   } catch (err) {
@@ -509,6 +531,18 @@ function matchesQuery(guest, query) {
   if (!query) return true;
   const haystack = `${guest.name} ${guest.email} ${guest.phone}`.toLowerCase();
   return haystack.includes(query);
+}
+
+// "Invite Confirmation" is a free-text column in the sheet, but the door
+// process only expects these three values -- color-coded so staff can read
+// status at a glance across a long list. Anything else (blank, a typo)
+// falls back to the plain, uncolored style rather than guessing.
+function inviteConfirmationClass(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'confirmed') return 'checkin-invite checkin-invite--confirmed';
+  if (v === 'no response') return 'checkin-invite checkin-invite--noresponse';
+  if (v === 'cancelled' || v === 'canceled') return 'checkin-invite checkin-invite--cancelled';
+  return 'checkin-invite';
 }
 
 function renderGuestRows(guests) {
@@ -542,6 +576,7 @@ function renderGuestRows(guests) {
           <td data-label="Guests">${escapeHtml(String(guest.guests || '—'))}</td>
           <td data-label="Status">${escapeHtml(guest.status || '—')}</td>
           <td data-label="User Type">${escapeHtml(guest.userType || '—')}</td>
+          <td data-label="Invite Confirmation"><span class="${inviteConfirmationClass(guest.inviteConfirmation)}">${escapeHtml(guest.inviteConfirmation || '—')}</span></td>
           <td data-label="2nd Guest Contact">${escapeHtml(guest.secondGuestContact || '—')}</td>
           <td data-label="Check-in"><span class="${checkedInClass}">${checkedInLabel}</span></td>
         </tr>
