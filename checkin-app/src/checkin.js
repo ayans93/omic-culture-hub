@@ -4,7 +4,7 @@ import { CHECKIN_ENDPOINT } from './config.js';
 const STORAGE_KEY = 'omicCheckinAuth';
 
 // ---------------------------------------------------------------------------
-// Apps Script JSONP helper (same convention as checkNewtonCapacity in
+// Apps Script JSONP helper (same convention as the capacity checks in
 // main.js -- Apps Script Web App responses carry no CORS headers, so a
 // <script> tag + callback is what lets us read a response at all).
 function checkinApiCallOnce(formType, extraParams) {
@@ -369,6 +369,7 @@ function guestDetailRows(guest) {
     <div class="checkin-detail-row"><span>Status</span><strong>${escapeHtml(guest.status || '—')}</strong></div>
     <div class="checkin-detail-row"><span>User Type</span><strong>${escapeHtml(guest.userType || '—')}</strong></div>
     <div class="checkin-detail-row"><span>Number of Guests</span><strong>${escapeHtml(String(guest.guests || '—'))}</strong></div>
+    <div class="checkin-detail-row"><span>2nd Guest Contact</span><strong>${escapeHtml(guest.secondGuestContact || '—')}</strong></div>
     <div class="checkin-detail-row"><span>Booking Code</span><strong>${escapeHtml(guest.bookingCode || '—')}</strong></div>
   `;
 }
@@ -541,6 +542,7 @@ function renderGuestRows(guests) {
           <td data-label="Guests">${escapeHtml(String(guest.guests || '—'))}</td>
           <td data-label="Status">${escapeHtml(guest.status || '—')}</td>
           <td data-label="User Type">${escapeHtml(guest.userType || '—')}</td>
+          <td data-label="2nd Guest Contact">${escapeHtml(guest.secondGuestContact || '—')}</td>
           <td data-label="Check-in"><span class="${checkedInClass}">${checkedInLabel}</span></td>
         </tr>
       `;

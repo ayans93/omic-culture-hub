@@ -30,6 +30,10 @@ var CHECKIN_SHEET_ID = '1sHlIgHW2MNuZrkQ9PbtTx76SFcB_JAneYamtkcWg2Gg';
 var CHECKIN_SHEET_TAB_NAME = 'Final List';
 
 // "Final List" column order (1-indexed, matches the sheet's header row).
+// Columns 10 (Invite Confirmation?) and 11 (2nd Guest Contact) were added
+// to the sheet later -- only the ones this app actually reads/writes are
+// listed here. SECOND_GUEST_CONTACT (column K) holds the optional contact
+// info collected for a guest's second ticket.
 var CHECKIN_COL = {
   NAME: 1,
   PHONE: 2,
@@ -40,6 +44,7 @@ var CHECKIN_COL = {
   BOOKING_CODE: 7,
   USER_TYPE: 8,
   CHECKED_IN: 9,
+  SECOND_GUEST_CONTACT: 11,
 };
 
 // The 5 admin accounts allowed into the check-in app, all sharing one
@@ -106,6 +111,7 @@ function checkinRowToGuest_(row, values) {
     bookingCode: values[CHECKIN_COL.BOOKING_CODE - 1] || '',
     userType: values[CHECKIN_COL.USER_TYPE - 1] || '',
     checkedIn: values[CHECKIN_COL.CHECKED_IN - 1] === true,
+    secondGuestContact: values[CHECKIN_COL.SECOND_GUEST_CONTACT - 1] || '',
   };
 }
 

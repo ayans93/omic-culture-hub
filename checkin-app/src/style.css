@@ -860,19 +860,21 @@ a {
 }
 
 .checkin-table th:nth-child(2),
-.checkin-table td:nth-child(2) { width: 18%; }   /* Name */
+.checkin-table td:nth-child(2) { width: 16%; }   /* Name */
 .checkin-table th:nth-child(3),
-.checkin-table td:nth-child(3) { width: 13%; }   /* Phone */
+.checkin-table td:nth-child(3) { width: 11%; }   /* Phone */
 .checkin-table th:nth-child(4),
-.checkin-table td:nth-child(4) { width: 22%; }   /* Email */
+.checkin-table td:nth-child(4) { width: 19%; }   /* Email */
 .checkin-table th:nth-child(5),
-.checkin-table td:nth-child(5) { width: 8%; }    /* Guests */
+.checkin-table td:nth-child(5) { width: 7%; }    /* Guests */
 .checkin-table th:nth-child(6),
-.checkin-table td:nth-child(6) { width: 10%; }   /* Status */
+.checkin-table td:nth-child(6) { width: 9%; }    /* Status */
 .checkin-table th:nth-child(7),
-.checkin-table td:nth-child(7) { width: 15%; }   /* User Type */
+.checkin-table td:nth-child(7) { width: 12%; }   /* User Type */
 .checkin-table th:nth-child(8),
-.checkin-table td:nth-child(8) { width: 14%; }   /* Check-in */
+.checkin-table td:nth-child(8) { width: 14%; }   /* 2nd Guest Contact */
+.checkin-table th:nth-child(9),
+.checkin-table td:nth-child(9) { width: 12%; }   /* Check-in */
 
 .checkin-table th {
   background: #fdfbf7;
